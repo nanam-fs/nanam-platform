@@ -30,7 +30,7 @@ export function Testimonials({ items }: { items: T[] }) {
           </m.figure>
         </AnimatePresence>
       </div>
-      <div className="mt-10 flex gap-2" role="tablist" aria-label="Client stories">
+      <div className="mt-7 flex gap-2" role="tablist" aria-label="Client stories">
         {items.map((it, n) => (
           <button
             key={it.name}
@@ -38,9 +38,12 @@ export function Testimonials({ items }: { items: T[] }) {
             aria-selected={n === i}
             aria-label={`Story from ${it.name}`}
             onClick={() => setI(n)}
-            className="group relative h-1.5 w-14 overflow-hidden rounded-full bg-white/15"
+            className="group flex h-11 w-14 items-center"
           >
-            <span className={cn("absolute inset-y-0 left-0 rounded-full bg-lime-400 transition-[width] duration-500", n === i ? "w-full" : "w-0 group-hover:w-1/3")} />
+            {/* Thin bar, full-height tap target. */}
+            <span className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+              <span className={cn("absolute inset-y-0 left-0 rounded-full bg-lime-400 transition-[width] duration-500", n === i ? "w-full" : "w-0 group-hover:w-1/3")} />
+            </span>
           </button>
         ))}
       </div>

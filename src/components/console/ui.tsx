@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 
 export function PageHeader({ title, description, actions, back }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; back?: { href: string; label: string } }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div>
+    <header className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0">
         {back && (
-          <Link href={back.href} className="mb-3 inline-block text-sm text-muted hover:text-forest-700">
+          <Link href={back.href} className="mb-1 inline-flex min-h-10 items-center text-sm text-muted hover:text-forest-700">
             ← {back.label}
           </Link>
         )}
@@ -23,14 +23,14 @@ export function PageHeader({ title, description, actions, back }: { title: React
 
 export function Card({ title, actions, children, className, padded = true }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; padded?: boolean }) {
   return (
-    <section className={cn("rounded-xl border border-line bg-white", className)}>
+    <section className={cn("min-w-0 rounded-xl border border-line bg-white", className)}>
       {(title || actions) && (
-        <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-forest-950">{title}</h2>
-          {actions}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-4 py-3.5 sm:px-5">
+          <h2 className="min-w-0 text-sm font-semibold text-forest-950">{title}</h2>
+          {actions && <div className="shrink-0">{actions}</div>}
         </div>
       )}
-      <div className={cn(padded && "p-5")}>{children}</div>
+      <div className={cn(padded && "p-4 sm:p-5")}>{children}</div>
     </section>
   );
 }
@@ -66,7 +66,7 @@ export function StatusBadge({ status }: { status: ApplicationStatus }) {
 
 export function Stat({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: ReactNode; tone?: "bad" | "good" }) {
   return (
-    <div className="rounded-xl border border-line bg-white p-5">
+    <div className="min-w-0 rounded-xl border border-line bg-white p-4 sm:p-5">
       <p className="text-sm text-muted">{label}</p>
       <p className={cn("mt-2 text-2xl font-semibold tracking-tight tabular text-forest-950", tone === "bad" && "text-red-700")}>{value}</p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
@@ -76,8 +76,9 @@ export function Stat({ label, value, hint, tone }: { label: string; value: React
 
 export function Table({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm [&_td]:px-5 [&_td]:py-3 [&_th]:px-5 [&_th]:py-2.5 [&_th]:text-xs [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted [&_thead_tr]:border-b [&_thead_tr]:border-line [&_tbody_tr]:border-b [&_tbody_tr]:border-line/70 [&_tbody_tr:last-child]:border-0">
+    // Swipeable on phones; amounts never break across lines.
+    <div className="overflow-x-auto overscroll-x-contain">
+      <table className="w-full text-left text-sm [&_td]:px-4 [&_td]:py-3 [&_td.tabular]:whitespace-nowrap [&_td.text-right]:whitespace-nowrap [&_th]:whitespace-nowrap [&_th]:px-4 sm:[&_td]:px-5 sm:[&_th]:px-5 [&_th]:py-2.5 [&_th]:text-xs [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted [&_thead_tr]:border-b [&_thead_tr]:border-line [&_tbody_tr]:border-b [&_tbody_tr]:border-line/70 [&_tbody_tr:last-child]:border-0">
         {children}
       </table>
     </div>

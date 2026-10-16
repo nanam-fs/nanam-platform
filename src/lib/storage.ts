@@ -3,7 +3,7 @@ import { createReadStream, existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { get, put } from "@vercel/blob";
-import { testMode } from "./test-mode";
+import { scratchPath, testMode } from "./test-mode";
 
 /**
  * Private file storage. Vercel Blob (private store) when connected; a local folder in test mode.
@@ -11,7 +11,7 @@ import { testMode } from "./test-mode";
  */
 const blobConfigured = () => !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 // Local storage is test-mode only; the ignore hints keep the bundler from tracing the whole project.
-const localRoot = () => resolve(/*turbopackIgnore: true*/ process.env.UPLOADS_DIR ?? ".data/uploads");
+const localRoot = () => resolve(/*turbopackIgnore: true*/ process.env.UPLOADS_DIR ?? scratchPath("uploads"));
 
 function localPath(key: string) {
   const p = resolve(/*turbopackIgnore: true*/ join(localRoot(), key));

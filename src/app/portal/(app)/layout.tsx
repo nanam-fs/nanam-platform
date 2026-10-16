@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LogOut, Phone } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { customerName, requireCustomer } from "@/lib/customer-auth";
+import { MemberAvatar } from "@/components/member-avatar";
+import { avatarSeed, customerName, requireCustomer } from "@/lib/customer-auth";
 import { site, tel } from "@/lib/site";
 import { portalSignOut } from "../actions";
 
@@ -28,11 +29,16 @@ export default async function PortalLayout({ children }: LayoutProps<"/portal">)
           </div>
         </div>
         <div className="mx-auto max-w-4xl px-4 pt-4 pb-24 md:px-6">
-          <Link href="/portal" className="text-sm text-white/60 hover:text-white">
+          <Link href="/portal" className="-my-2 inline-block py-2 text-sm text-white/60 hover:text-white">
             My account
           </Link>
-          <p className="mt-1 font-display text-4xl leading-tight">Hello{name ? `, ${name.split(" ")[0]}` : ""}</p>
-          <p className="mt-1 text-sm text-white/60">{customer.phone}</p>
+          <div className="mt-3 flex items-center gap-4">
+            <MemberAvatar name={name} seed={avatarSeed(customer.phone)} className="size-14 text-xl" ring />
+            <div className="min-w-0">
+              <p className="truncate font-display text-3xl leading-tight sm:text-4xl">Hello{name ? `, ${name.split(" ")[0]}` : ""}</p>
+              <p className="mt-0.5 text-sm text-white/60">{customer.phone}</p>
+            </div>
+          </div>
         </div>
       </header>
       <main className="mx-auto -mt-16 max-w-4xl px-4 pb-16 md:px-6 print:mt-0 print:max-w-none print:p-0">{children}</main>

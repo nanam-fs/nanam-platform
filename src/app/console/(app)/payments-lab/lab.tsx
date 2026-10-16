@@ -84,9 +84,9 @@ export function Lab({ modes, mtnNumbers }: { modes: Record<"mtn" | "airtel", str
             </CField>
             {network === "mtn" && (
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => setMsisdn("46733123499")} className="rounded-full border border-line px-2.5 py-1 text-xs hover:bg-cream">Success</button>
+                <button type="button" onClick={() => setMsisdn("46733123499")} className="rounded-full border border-line px-3 py-2 text-xs hover:bg-cream sm:px-2.5 sm:py-1">Success</button>
                 {mtnNumbers.map((n) => (
-                  <button key={n.msisdn} type="button" onClick={() => setMsisdn(n.msisdn)} className="rounded-full border border-line px-2.5 py-1 text-xs hover:bg-cream">
+                  <button key={n.msisdn} type="button" onClick={() => setMsisdn(n.msisdn)} className="rounded-full border border-line px-3 py-2 text-xs hover:bg-cream sm:px-2.5 sm:py-1">
                     {n.outcome}
                   </button>
                 ))}

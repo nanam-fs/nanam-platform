@@ -16,7 +16,7 @@ export function LoginForm({ next }: { next?: string }) {
       <div>
         <div className="mb-1.5 flex items-baseline justify-between">
           <label htmlFor="password" className="text-sm font-medium text-forest-950">Password</label>
-          <a href="/console/forgot" className="text-xs text-forest-700 hover:underline">Forgot password?</a>
+          <a href="/console/forgot" className="-my-2 py-2 text-xs text-forest-700 hover:underline">Forgot password?</a>
         </div>
         <input id="password" name="password" type="password" required autoComplete="current-password" className="h-11 w-full rounded-lg border border-line bg-white px-3 focus:border-forest-600 focus:outline-none focus:ring-2 focus:ring-forest-600/15" />
       </div>

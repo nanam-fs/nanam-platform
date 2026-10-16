@@ -14,6 +14,7 @@ import type { FormState } from "@/lib/schemas";
 import { site } from "@/lib/site";
 import { cn, formatUGX } from "@/lib/utils";
 import { submitApplication } from "../actions";
+import { DemoCode } from "@/components/demo-code";
 
 const STEPS = [
   { title: "Your loan", fields: ["product", "amount", "months", "purpose"] },
@@ -289,6 +290,11 @@ export function ApplyForm({
               <p className="mt-1 text-sm text-forest-900/75">
                 We’ve texted a 6-digit code to <strong>{state.verify.phone}</strong>. Enter it to submit your application.
               </p>
+              {state.verify.demoCode && (
+                <div className="mt-3">
+                  <DemoCode code={state.verify.demoCode} />
+                </div>
+              )}
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="flex-1">
                   <label htmlFor="code" className="sr-only">6-digit code</label>

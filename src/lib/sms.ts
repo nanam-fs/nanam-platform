@@ -1,7 +1,7 @@
 import "server-only";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { testMode } from "./test-mode";
+import { scratchPath, testMode } from "./test-mode";
 
 /**
  * Sends an SMS through Africa's Talking when AT_USERNAME and AT_API_KEY are set.
@@ -30,7 +30,7 @@ export async function sendSms(to: string, message: string) {
 
   if (!testMode()) throw new Error("SMS is not configured (set AT_USERNAME and AT_API_KEY).");
 
-  const outbox = process.env.SMS_OUTBOX ?? ".data/sms-outbox.log";
+  const outbox = process.env.SMS_OUTBOX ?? scratchPath("sms-outbox.log");
   mkdirSync(dirname(outbox), { recursive: true });
   appendFileSync(outbox, `${new Date().toISOString()}  ${to}  ${message}\n`);
   return { channel: "dev-outbox" as const };

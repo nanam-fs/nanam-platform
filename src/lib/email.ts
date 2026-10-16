@@ -1,7 +1,7 @@
 import "server-only";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { testMode } from "./test-mode";
+import { scratchPath, testMode } from "./test-mode";
 
 /**
  * Transactional email via Resend's REST API when RESEND_API_KEY is set.
@@ -19,7 +19,7 @@ export async function sendEmail(to: string, subject: string, text: string) {
     return { channel: "resend" as const };
   }
   if (!testMode()) throw new Error("Email is not configured (set RESEND_API_KEY and EMAIL_FROM).");
-  const outbox = process.env.EMAIL_OUTBOX ?? ".data/email-outbox.log";
+  const outbox = process.env.EMAIL_OUTBOX ?? scratchPath("email-outbox.log");
   mkdirSync(/*turbopackIgnore: true*/ dirname(outbox), { recursive: true });
   appendFileSync(/*turbopackIgnore: true*/ outbox, `--- ${new Date().toISOString()}\nTo: ${to}\nSubject: ${subject}\n\n${text}\n`);
   return { channel: "dev-outbox" as const };

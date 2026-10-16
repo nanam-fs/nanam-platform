@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { DemoBanner } from "@/components/demo-banner";
 import { MotionProvider } from "@/components/motion-provider";
+import { demoMode } from "@/lib/test-mode";
 import { site } from "@/lib/site";
 import { cabinet, switzer } from "./fonts";
 import "./globals.css";
-
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -26,8 +27,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-UG" className={`${switzer.variable} ${cabinet.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">
+    <html lang="en-UG" className={`${switzer.variable} ${cabinet.variable} h-full antialiased`} style={demoMode() ? ({ "--demo-h": "2rem" } as React.CSSProperties) : undefined}>
+      <body className="flex min-h-full flex-col pt-[var(--demo-h,0px)]">
+        <DemoBanner />
         <MotionProvider>{children}</MotionProvider>
       </body>
     </html>

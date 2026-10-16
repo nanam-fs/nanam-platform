@@ -10,7 +10,7 @@ import { sendSms } from "./sms";
 const TTL_MIN = 10;
 const sha = (v: string) => createHash("sha256").update(v).digest("hex");
 
-export async function sendApplicationCode(rawPhone: string): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function sendApplicationCode(rawPhone: string): Promise<{ ok: true; demoCode?: string } | { ok: false; message: string }> {
   const phone = normalisePhone(rawPhone);
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   const since = new Date(Date.now() - 15 * 60_000);
@@ -26,8 +26,9 @@ export async function sendApplicationCode(rawPhone: string): Promise<{ ok: true 
     .values({ phone, purpose: "application", codeHash: "pending", expiresAt: new Date(Date.now() + TTL_MIN * 60_000), ip })
     .returning({ id: schema.otpCodes.id });
   await db.update(schema.otpCodes).set({ codeHash: sha(`${row.id}:${code}`) }).where(eq(schema.otpCodes.id, row.id));
-  await sendSms(phone, `${code} is your NANAM code to confirm your loan application. It expires in ${TTL_MIN} minutes.`);
-  return { ok: true };
+  const sent = await sendSms(phone, `${code} is your NANAM code to confirm your loan application. It expires in ${TTL_MIN} minutes.`);
+  // No real SMS was sent (test or demo mode): show the code on screen instead.
+  return sent.channel === "dev-outbox" ? { ok: true, demoCode: code } : { ok: true };
 }
 
 export async function checkApplicationCode(rawPhone: string, rawCode: string) {

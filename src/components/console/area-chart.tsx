@@ -1,13 +1,12 @@
 "use client";
 
 import * as m from "motion/react-m";
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn, compactUGX, formatUGX } from "@/lib/utils";
 
 type Point = { week: string; disbursed: number; collected: number; loans: number };
 type Metric = "disbursed" | "collected";
 
-const W = 720;
 const H = 220;
 const PAD = { t: 12, r: 8, b: 26, l: 44 };
 
@@ -29,6 +28,16 @@ export function PortfolioChart({ data }: { data: Point[] }) {
   const [hover, setHover] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
   const gid = useId();
+  // Draw at the real pixel width so axis text stays 11px on a phone instead of being squashed.
+  const [W, setW] = useState(720);
+  useEffect(() => {
+    const el = svg.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(260, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const ticks = W < 480 ? 3 : 6;
 
   const pts = data.slice(-range);
   const values = pts.map((p) => p[metric]);
@@ -43,7 +52,7 @@ export function PortfolioChart({ data }: { data: Point[] }) {
     const d = c.map(([px, py], i) => `${i ? "L" : "M"}${px},${py}`).join(" ");
     return { line: d, area: `${d} L${x(c.length - 1)},${H - PAD.b} L${x(0)},${H - PAD.b} Z` };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metric, range, data]);
+  }, [metric, range, data, W]);
 
   const onMove = (clientX: number) => {
     const r = svg.current?.getBoundingClientRect();
@@ -59,7 +68,7 @@ export function PortfolioChart({ data }: { data: Point[] }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-muted">{metric === "disbursed" ? "Disbursed" : "Collected"}, last {range} weeks</p>
-          <p className="mt-1 font-display text-3xl tracking-tight text-forest-950 tabular">{formatUGX(total)}</p>
+          <p className="mt-1 font-display text-2xl tracking-tight text-forest-950 tabular sm:text-3xl">{formatUGX(total)}</p>
         </div>
         <div className="flex gap-2">
           <Segmented value={metric} onChange={setMetric} options={[{ v: "disbursed", l: "Disbursed" }, { v: "collected", l: "Collected" }]} />
@@ -111,8 +120,8 @@ export function PortfolioChart({ data }: { data: Point[] }) {
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           />
           {pts.map((p, i) =>
-            i % Math.ceil(pts.length / 6) === 0 || i === pts.length - 1 ? (
-              <text key={p.week} x={x(i)} y={H - 6} textAnchor="middle" className="fill-muted text-[11px]">
+            (i % Math.ceil(pts.length / ticks) === 0 && pts.length - 1 - i >= Math.ceil(pts.length / ticks) / 2) || i === pts.length - 1 ? (
+              <text key={p.week} x={x(i)} y={H - 6} textAnchor={i === pts.length - 1 ? "end" : "middle"} className="fill-muted text-[11px]">
                 {weekLabel(p.week)}
               </text>
             ) : null,
@@ -126,8 +135,8 @@ export function PortfolioChart({ data }: { data: Point[] }) {
         </svg>
         {h && hover !== null && (
           <div
-            className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-xl border border-line bg-white px-3 py-2 text-xs shadow-lg"
-            style={{ left: `${(x(hover) / W) * 100}%` }}
+            className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl border border-line bg-white px-3 py-2 text-xs shadow-lg"
+            style={{ left: `clamp(4.5rem, ${(x(hover) / W) * 100}%, calc(100% - 4.5rem))` }}
           >
             <p className="text-muted">Week of {weekLabel(h.week)}</p>
             <p className="mt-0.5 font-semibold text-ink tabular">{formatUGX(h[metric])}</p>
@@ -148,7 +157,7 @@ function Segmented<T extends string | number>({ value, onChange, options }: { va
           role="radio"
           aria-checked={value === o.v}
           onClick={() => onChange(o.v)}
-          className={cn("rounded-full px-3 py-1.5 font-medium transition-colors", value === o.v ? "bg-white text-forest-950 shadow-sm" : "text-muted hover:text-ink")}
+          className={cn("rounded-full px-3 py-2 font-medium transition-colors sm:py-1.5", value === o.v ? "bg-white text-forest-950 shadow-sm" : "text-muted hover:text-ink")}
         >
           {o.l}
         </button>

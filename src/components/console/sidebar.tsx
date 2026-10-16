@@ -93,7 +93,7 @@ export function Sidebar({ items, user }: { items: NavItem[]; user: { name: strin
 
   return (
     <>
-      <div className="sticky top-0 z-40 flex h-14 items-center justify-between bg-forest-950 px-4 lg:hidden">
+      <div className="sticky top-[var(--demo-h,0px)] z-40 flex h-14 items-center justify-between bg-forest-950 px-4 lg:hidden">
         <Image src="/brand/logo-inverse.svg" alt="NANAM" width={613} height={136} className="h-7 w-auto" />
         <div className="flex items-center gap-1">
           <button aria-label="Search" onClick={openPalette} className="grid size-10 place-items-center text-white">
@@ -105,12 +105,12 @@ export function Sidebar({ items, user }: { items: NavItem[]; user: { name: strin
         </div>
       </div>
       {open && (
-        <div className="fixed inset-0 top-14 z-40 flex flex-col bg-forest-950 pt-3 lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 top-[calc(3.5rem+var(--demo-h,0px))] z-40 flex flex-col bg-forest-950 pt-3 lg:hidden">
           {nav}
           {footer}
         </div>
       )}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-forest-950 lg:flex">
+      <aside className="sticky top-[var(--demo-h,0px)] hidden h-[calc(100dvh-var(--demo-h,0px))] w-64 shrink-0 flex-col bg-forest-950 lg:flex">
         <div className="flex h-16 items-center px-6">
           <Image src="/brand/logo-inverse.svg" alt="NANAM" width={613} height={136} className="h-7 w-auto" />
         </div>

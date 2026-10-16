@@ -20,7 +20,7 @@ export default async function PayPage({ params, searchParams }: PageProps<"/port
 
   return (
     <section className="rounded-3xl border border-line bg-white p-6 shadow-xl shadow-forest-950/5 md:p-8">
-      <Link href={`/portal/loans/${id}`} className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-forest-700">
+      <Link href={`/portal/loans/${id}`} className="-my-2 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted hover:text-forest-700">
         <ArrowLeft className="size-4" /> Loan {opts.loan.reference}
       </Link>
       <h1 className="mt-4 font-display text-4xl text-forest-950">Pay with Mobile Money</h1>

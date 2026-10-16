@@ -5,8 +5,8 @@ export async function register() {
 
   const { claimServerLock } = await import("./db/local-lock");
   const { migrate } = await import("drizzle-orm/pglite/migrator");
-  const { db } = await import("./db");
-  claimServerLock();
+  const { closeDb, db } = await import("./db");
+  claimServerLock(closeDb);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await migrate(db as any, { migrationsFolder: "drizzle" });
 }

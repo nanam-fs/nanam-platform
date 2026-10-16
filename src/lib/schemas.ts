@@ -77,7 +77,7 @@ export type FormState = {
   /** Set after an application is saved, so the applicant can attach documents straight away. */
   upload?: { applicationId: string; token: string; product: string };
   /** Set when the applicant must enter the SMS code sent to this number before we accept the application. */
-  verify?: { phone: string };
+  verify?: { phone: string; demoCode?: string };
   message?: string;
   errors?: Record<string, string[] | undefined>;
   values?: Record<string, string>;

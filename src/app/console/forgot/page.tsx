@@ -12,7 +12,7 @@ export default function ForgotPage() {
       <p className="mt-6 text-sm text-muted">
         No access to your email? Ask an administrator to issue a reset link from <span className="text-ink">Team</span>.
       </p>
-      <Link href="/console/login" className="mt-4 inline-block text-sm font-medium text-forest-700 hover:underline">← Back to sign in</Link>
+      <Link href="/console/login" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-forest-700 hover:underline">← Back to sign in</Link>
     </AuthShell>
   );
 }

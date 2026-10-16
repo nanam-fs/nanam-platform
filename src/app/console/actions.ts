@@ -1,14 +1,14 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db, schema } from "@/db";
-import type { ApplicationStatus } from "@/db/schema";
+import type { ApplicationStatus, Role } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { authorize, createSession, currentSessionId, destroySession, getStaff, loginThrottle, PermissionError } from "@/lib/auth";
 import { buildSchedule, canTransition } from "@/lib/lending";
@@ -23,6 +23,7 @@ import { creditPolicy } from "@/lib/lending";
 import { providerByName, providerFor } from "@/lib/momo";
 import { site } from "@/lib/site";
 import { sendSms } from "@/lib/sms";
+import { demoMode } from "@/lib/test-mode";
 
 export type ActionResult = { ok: boolean; message?: string; errors?: Record<string, string[] | undefined> };
 
@@ -72,6 +73,16 @@ export async function login(_: ActionResult, fd: FormData): Promise<ActionResult
   redirect(next.startsWith("/console") ? next : "/console");
 }
 
+/** Demo deployments only: sign in as a sample staff member of the chosen role, no password. */
+export async function demoLogin(role: Role) {
+  if (!demoMode()) throw new Error("Demo sign-in is only available in demo mode.");
+  const user = await db.query.staff.findFirst({ where: and(eq(schema.staff.role, role), eq(schema.staff.active, true)), orderBy: asc(schema.staff.createdAt) });
+  if (!user) throw new Error(`No ${role} account in the demo data.`);
+  await createSession(user.id);
+  await audit(db, { actorId: user.id, action: "auth.login", entity: "staff", entityId: user.id, detail: { demo: true } });
+  redirect("/console");
+}
+
 export async function logout() {
   const staff = await getStaff();
   if (staff) await audit(db, { actorId: staff.id, action: "auth.logout", entity: "staff", entityId: staff.id });
@@ -101,6 +112,7 @@ export async function resetPassword(token: string, _: ActionResult, fd: FormData
 }
 
 export async function issueResetLink(staffId: string): Promise<ActionResult> {
+  if (demoMode()) return { ok: false, message: "Team and password changes are switched off in the demo." };
   return run("staff.manage", async (actor) => {
     const { link, ttl } = await adminIssueReset(staffId, actor.id);
     return `Share this one-time link privately (valid ${ttl / 60} hours): ${link}`;
@@ -585,6 +597,7 @@ export async function setMessageStatus(id: string, status: "open" | "closed") {
 /* ───────────── Team ───────────── */
 
 export async function createStaff(_: ActionResult, fd: FormData) {
+  if (demoMode()) return { ok: false, message: "Team and password changes are switched off in the demo." };
   const r = await run("staff.manage", async (actor) => {
     const data = z
       .object({
@@ -608,6 +621,7 @@ export async function createStaff(_: ActionResult, fd: FormData) {
 }
 
 export async function updateStaff(id: string, _: ActionResult, fd: FormData) {
+  if (demoMode()) return { ok: false, message: "Team and password changes are switched off in the demo." };
   const r = await run("staff.manage", async (actor) => {
     const data = z
       .object({ role: z.enum(["admin", "manager", "officer", "finance"]), active: z.enum(["true", "false"]).transform((v) => v === "true") })
@@ -625,6 +639,7 @@ export async function updateStaff(id: string, _: ActionResult, fd: FormData) {
 }
 
 export async function changePassword(_: ActionResult, fd: FormData) {
+  if (demoMode()) return { ok: false, message: "Team and password changes are switched off in the demo." };
   const staff = await getStaff();
   if (!staff) return { ok: false, message: "Your session has expired." };
   const current = String(fd.get("current") ?? "");

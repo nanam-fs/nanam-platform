@@ -30,7 +30,7 @@ async function isKnownCustomer(phone: string) {
   return !!loan;
 }
 
-export type OtpRequestResult = { ok: true; phone: string } | { ok: false; message: string };
+export type OtpRequestResult = { ok: true; phone: string; demoCode?: string } | { ok: false; message: string };
 
 /**
  * Sends a sign-in code. The response is the same whether or not the number is a customer,
@@ -55,7 +55,9 @@ export async function requestOtp(rawPhone: string): Promise<OtpRequestResult> {
   await db.update(schema.otpCodes).set({ codeHash: hashCode(row.id, code) }).where(eq(schema.otpCodes.id, row.id));
 
   if (await isKnownCustomer(phone)) {
-    await sendSms(phone, `${code} is your NANAM sign-in code. It expires in ${OTP_MINUTES} minutes. NANAM staff will never ask for this code.`);
+    const sent = await sendSms(phone, `${code} is your NANAM sign-in code. It expires in ${OTP_MINUTES} minutes. NANAM staff will never ask for this code.`);
+    // No real SMS was sent (test or demo mode): show the code on screen instead.
+    if (sent.channel === "dev-outbox") return { ok: true, phone, demoCode: code };
   }
   return { ok: true, phone };
 }
@@ -136,4 +138,9 @@ export async function customerName(phone: string) {
     columns: { fullName: true },
   });
   return app?.fullName ?? null;
+}
+
+/** Stable, non-reversible seed for a customer's generated avatar (same on the website header and in the portal). */
+export function avatarSeed(phone: string) {
+  return createHash("sha256").update(`nanam-avatar:${phone}`).digest("hex").slice(0, 16);
 }

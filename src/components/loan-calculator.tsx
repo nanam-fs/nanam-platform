@@ -61,7 +61,7 @@ export function LoanCalculator({
             aria-checked={product === p.slug}
             onClick={() => setProduct(p.slug)}
             className={cn(
-              "rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+              "flex min-h-11 items-center rounded-xl px-3 py-2 text-left text-sm leading-tight transition-colors",
               product === p.slug
                 ? glass
                   ? "bg-white text-forest-950"
@@ -132,9 +132,9 @@ export function LoanCalculator({
       </div>
 
       <dl className={cn("mt-7 space-y-3 border-t pt-6 text-sm", glass ? "border-white/10" : "border-line")}>
-        <div className="flex items-end justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <dt className={glass ? "text-white/70" : "text-muted"}>Monthly instalment</dt>
-          <dd className="font-display text-3xl tabular text-lime-500 md:text-[2rem]">{formatUGX(q.monthlyInstalment)}</dd>
+          <dd className="whitespace-nowrap font-display text-3xl leading-none tabular text-lime-500 md:text-[2rem]">{formatUGX(q.monthlyInstalment)}</dd>
         </div>
         <Row glass={glass} label={`Processing fee (${site.pricing.processingFee}%, deducted)`} value={`− ${formatUGX(q.processingFee)}`} />
         <Row glass={glass} label="You receive" value={formatUGX(q.netDisbursed)} />

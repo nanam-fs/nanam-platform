@@ -90,7 +90,7 @@ export default async function Overview({ searchParams }: PageProps<"/console">) 
 
       <header className="mb-8">
         <p className="text-sm text-muted">{today}</p>
-        <h1 className="mt-1 font-display text-4xl tracking-tight text-forest-950">
+        <h1 className="mt-1 font-display text-3xl tracking-tight text-forest-950 sm:text-4xl">
           {greeting}, {staff.name.split(" ")[0]}
         </h1>
         {tasks.length > 0 ? (
@@ -111,11 +111,11 @@ export default async function Overview({ searchParams }: PageProps<"/console">) 
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[1.75fr_1fr]">
-        <section className="rounded-2xl border border-line bg-white p-6">
+        <section className="min-w-0 rounded-2xl border border-line bg-white p-4 sm:p-6">
           <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-5">
             <div>
               <p className="text-sm text-muted">Outstanding portfolio · principal</p>
-              <p className="font-display text-5xl tracking-tight text-forest-950 tabular">{formatUGX(portfolio.outstanding)}</p>
+              <p className="font-display text-4xl tracking-tight text-forest-950 tabular sm:text-5xl">{formatUGX(portfolio.outstanding)}</p>
             </div>
             <p className="text-sm text-muted">
               {portfolio.activeLoans} active loans · {formatUGX(portfolio.due7)} due in 7 days
@@ -140,7 +140,7 @@ export default async function Overview({ searchParams }: PageProps<"/console">) 
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-2xl border border-line bg-white p-5">
+          <div key={k.label} className="min-w-0 rounded-2xl border border-line bg-white p-4 sm:p-5">
             <p className="text-sm text-muted">{k.label}</p>
             <div className="mt-2 flex items-end justify-between gap-3">
               <p className={cn("whitespace-nowrap text-[1.35rem] font-semibold tracking-tight tabular", k.bad ? "text-red-700" : "text-forest-950")}>{k.value}</p>
@@ -152,7 +152,7 @@ export default async function Overview({ searchParams }: PageProps<"/console">) 
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card title={queue.title} padded={false} actions={<Link href="/console/applications" className="text-sm text-forest-700 hover:underline">View all</Link>}>
+        <Card title={queue.title} padded={false} actions={<Link href="/console/applications" className="-my-2 inline-flex min-h-10 items-center text-sm text-forest-700 hover:underline">View all</Link>}>
           {apps.length === 0 ? (
             <Empty>{queue.empty}</Empty>
           ) : (
@@ -179,7 +179,7 @@ export default async function Overview({ searchParams }: PageProps<"/console">) 
           )}
         </Card>
 
-        <Card title="Collections: overdue & due this week" padded={false} actions={<Link href="/console/loans?filter=arrears" className="text-sm text-forest-700 hover:underline">Arrears</Link>}>
+        <Card title="Collections: overdue & due this week" padded={false} actions={<Link href="/console/loans?filter=arrears" className="-my-2 inline-flex min-h-10 items-center text-sm text-forest-700 hover:underline">Arrears</Link>}>
           {worklist.length === 0 ? (
             <Empty>No instalments due in the next 7 days.</Empty>
           ) : (

@@ -15,7 +15,7 @@ function alive(pid: number) {
   }
 }
 
-export function claimServerLock() {
+export function claimServerLock(close: () => Promise<void> = async () => {}) {
   const LOCK = lockPath();
   mkdirSync(dirname(LOCK), { recursive: true });
   writeFileSync(LOCK, String(process.pid));
@@ -25,7 +25,13 @@ export function claimServerLock() {
     } catch {}
   };
   process.once("exit", release);
-  for (const sig of ["SIGINT", "SIGTERM"] as const) process.once(sig, () => (release(), process.exit(0)));
+  // Close the database before exiting: killing PGlite mid-write corrupts its files.
+  const shutdown = async () => {
+    release();
+    await Promise.race([close().catch(() => {}), new Promise((r) => setTimeout(r, 4000))]);
+    process.exit(0);
+  };
+  for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"] as const) process.once(sig, shutdown);
 }
 
 export function assertNoServerRunning() {

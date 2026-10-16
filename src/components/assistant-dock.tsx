@@ -38,6 +38,8 @@ export function AssistantDock() {
   const launcher = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // Phones: the chat fills the visible screen and follows the on-screen keyboard (visualViewport).
+  const [vv, setVv] = useState<{ h: number; top: number } | null>(null);
 
   // Restore this visit's conversation (best effort; storage may be unavailable).
   useEffect(() => {
@@ -52,14 +54,27 @@ export function AssistantDock() {
     } catch {}
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, typing]);
+  // Keep the latest answer in view when the keyboard opens or closes.
+  useEffect(() => {
+    if (vv) listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+  }, [vv]);
 
   // Show after the hero, hide while the footer is on screen, so the dock never covers key content.
+  // On phones it also slides away while the reader scrolls down and returns when they scroll back up.
   useEffect(() => {
     let pastHero = false;
     let footerVisible = false;
-    const update = () => setVisible(pastHero && !footerVisible);
+    let readingDown = false;
+    let lastY = window.scrollY;
+    const phone = window.matchMedia("(max-width: 767px)");
+    const update = () => setVisible(pastHero && !footerVisible && !(phone.matches && readingDown));
     const onScroll = () => {
-      pastHero = window.scrollY > window.innerHeight * 0.6;
+      const y = window.scrollY;
+      if (Math.abs(y - lastY) > 6) {
+        readingDown = y > lastY;
+        lastY = y;
+      }
+      pastHero = y > window.innerHeight * 0.6;
       update();
     };
     const footer = document.querySelector("footer");
@@ -75,10 +90,28 @@ export function AssistantDock() {
 
   useEffect(() => {
     if (!open) return;
-    inputRef.current?.focus();
+    const phone = window.matchMedia("(max-width: 767px)").matches;
+    // Don't throw the keyboard up on a phone; people often start from a suggestion chip.
+    if (!phone) inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const html = document.documentElement;
+    const prevOverflow = html.style.overflow;
+    const view = window.visualViewport;
+    const sync = () => view && setVv({ h: Math.round(view.height), top: Math.round(view.offsetTop) });
+    if (phone) {
+      html.style.overflow = "hidden";
+      sync();
+      view?.addEventListener("resize", sync);
+      view?.addEventListener("scroll", sync);
+    }
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      html.style.overflow = prevOverflow;
+      view?.removeEventListener("resize", sync);
+      view?.removeEventListener("scroll", sync);
+      setVv(null);
+    };
   }, [open]);
 
   function close() {
@@ -117,9 +150,10 @@ export function AssistantDock() {
               ref={launcher}
               onClick={() => setOpen(true)}
               aria-haspopup="dialog"
-              className="flex h-11 items-center gap-2 rounded-full bg-lime-500 pr-4 pl-3 text-sm font-semibold text-forest-950 transition-colors hover:bg-lime-400"
+              aria-label="Ask NANAM"
+              className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-full bg-lime-500 px-3 text-sm font-semibold text-forest-950 transition-colors hover:bg-lime-400 md:pr-4"
             >
-              <Sparkles className="size-4" /> Ask NANAM
+              <Sparkles className="size-4" /> <span className="hidden md:inline">Ask NANAM</span>
             </button>
             <a
               href={whatsappUrl("Hello NANAM, I have a question.")}
@@ -140,7 +174,7 @@ export function AssistantDock() {
       <AnimatePresence>
         {open && (
           <>
-            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} className="fixed inset-0 z-40 bg-forest-950/30 backdrop-blur-[2px] md:bg-transparent md:backdrop-blur-none" aria-hidden />
+            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} className="fixed inset-0 z-[75] bg-forest-950/40 backdrop-blur-[2px] md:z-40 md:bg-transparent md:backdrop-blur-none" aria-hidden />
             <m.section
               role="dialog"
               aria-modal="true"
@@ -148,9 +182,10 @@ export function AssistantDock() {
               initial={{ opacity: 0, y: 40, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.98 }}
-              className="fixed inset-x-0 bottom-0 z-50 flex h-[82dvh] flex-col overflow-hidden rounded-t-3xl bg-cream shadow-2xl shadow-forest-950/40 md:inset-x-auto md:right-6 md:bottom-6 md:h-[min(40rem,calc(100dvh-3rem))] md:w-[25rem] md:rounded-3xl"
+              style={vv ? { height: vv.h, top: vv.top, bottom: "auto" } : undefined}
+              className="fixed inset-x-0 top-0 bottom-0 z-[80] flex h-dvh flex-col overflow-hidden bg-cream shadow-2xl shadow-forest-950/40 md:inset-x-auto md:top-auto md:right-6 md:bottom-6 md:z-50 md:h-[min(40rem,calc(100dvh-3rem))] md:w-[25rem] md:rounded-3xl"
             >
-              <header className="surface-forest flex items-start justify-between gap-3 px-5 pt-5 pb-4 text-white">
+              <header className="surface-forest flex items-start justify-between gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4 text-white md:px-5 md:pt-5">
                 <div className="flex items-center gap-3">
                   <span className="grid size-10 place-items-center rounded-2xl bg-white/95 p-1.5">
                     <Image src="/brand/logo-mark.svg" alt="" width={110} height={118} className="size-full" />
@@ -160,7 +195,7 @@ export function AssistantDock() {
                     <p className="text-xs text-white/60">Instant answers from nanam.ug</p>
                   </div>
                 </div>
-                <button onClick={close} aria-label="Close assistant" className="grid size-9 place-items-center rounded-full text-white/70 hover:bg-white/10 hover:text-white">
+                <button onClick={close} aria-label="Close assistant" className="grid size-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/15 md:size-9 md:bg-transparent md:text-white/70">
                   <X className="size-5" />
                 </button>
               </header>

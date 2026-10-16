@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { DemoCode } from "@/components/demo-code";
 import { loginStep, type LoginState } from "../actions";
 
 const field =
@@ -15,6 +16,7 @@ export function PortalLoginForm() {
       <form action={action} className="space-y-4">
         <input type="hidden" name="phone" value={state.phone} />
         {state.message && <p className="rounded-xl bg-forest-50 px-4 py-3 text-sm text-forest-800">{state.message}</p>}
+        {state.demoCode && <DemoCode code={state.demoCode} />}
         <div>
           <label htmlFor="code" className="mb-2 block text-sm font-medium text-forest-950">6-digit code</label>
           <input

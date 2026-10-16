@@ -8,7 +8,7 @@ import { testMode } from "@/lib/test-mode";
 import { db, schema } from "@/db";
 import { and, eq } from "drizzle-orm";
 
-export type LoginState = { step: "phone" | "code"; phone?: string; message?: string; error?: string };
+export type LoginState = { step: "phone" | "code"; phone?: string; message?: string; error?: string; demoCode?: string };
 
 export async function loginStep(prev: LoginState, fd: FormData): Promise<LoginState> {
   const intent = String(fd.get("intent") ?? "send");
@@ -24,7 +24,7 @@ export async function loginStep(prev: LoginState, fd: FormData): Promise<LoginSt
   try {
     const r = await requestOtp(String(fd.get("phone") ?? prev.phone ?? ""));
     if (!r.ok) return { step: prev.step, phone: prev.phone, error: r.message };
-    return { step: "code", phone: r.phone, message: `If ${r.phone} is registered with NANAM, we’ve sent it a 6-digit code.` };
+    return { step: "code", phone: r.phone, message: `If ${r.phone} is registered with NANAM, we’ve sent it a 6-digit code.`, demoCode: r.demoCode };
   } catch (err) {
     console.error("[portal] could not send code", err);
     // Drizzle wraps the database's message in `cause`; show the root reason in test mode.

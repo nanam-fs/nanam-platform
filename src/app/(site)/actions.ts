@@ -47,14 +47,15 @@ export async function submitApplication(_: FormState, formData: FormData) {
     const code = values.code?.trim();
     // Step 1: text a code to the number. Step 2: accept the application only with the right code.
     if (!code || values.resend === "1") {
+      let sent: Awaited<ReturnType<typeof sendApplicationCode>>;
       try {
-        const sent = await sendApplicationCode(parsed.data.phone);
+        sent = await sendApplicationCode(parsed.data.phone);
         if (!sent.ok) return { ok: false, message: sent.message, values, verify: { phone: normalisePhone(parsed.data.phone) } };
       } catch (err) {
         console.error("[apply] could not send code", err);
         return { ok: false, message: "We couldn’t text a code to that number. Check it and try again, or call us.", values };
       }
-      return { ok: false, values, verify: { phone: normalisePhone(parsed.data.phone) } };
+      return { ok: false, values, verify: { phone: normalisePhone(parsed.data.phone), demoCode: sent.demoCode } };
     }
     if (!(await checkApplicationCode(parsed.data.phone, code))) {
       return { ok: false, message: "That code is incorrect or has expired.", values, verify: { phone: normalisePhone(parsed.data.phone) }, errors: { code: ["Incorrect code"] } };

@@ -16,7 +16,7 @@ export default function RecoverPage() {
           Tell us your old and new numbers. An officer will call you to confirm it’s really you, then move your account to the new number.
         </p>
         <RecoverForm />
-        <Link href="/portal/login" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-forest-700">
+        <Link href="/portal/login" className="mt-6 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-forest-700">
           <ArrowLeft className="size-4" /> Back to sign in
         </Link>
       </div>

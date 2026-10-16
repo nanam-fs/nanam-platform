@@ -44,28 +44,28 @@ export function SiteFooter() {
         <div>
           <Logo inverse size="lg" />
           <p className="mt-6 max-w-sm text-white/65">{site.tagline}</p>
-          <ul className="mt-8 space-y-3 text-sm text-white/80">
-            <li className="flex gap-3">
+          <ul className="mt-8 space-y-1 text-sm text-white/80">
+            <li className="flex gap-3 py-2">
               <MapPin className="mt-0.5 size-4 shrink-0 text-lime-400" />
               <span>{site.address.lines.join(", ")}</span>
             </li>
-            <li className="flex gap-3">
-              <Phone className="mt-0.5 size-4 shrink-0 text-lime-400" />
-              <span className="flex flex-wrap gap-x-3">
+            <li className="flex items-center gap-3">
+              <Phone className="size-4 shrink-0 text-lime-400" />
+              <span className="flex flex-wrap gap-x-4">
                 {site.phones.map((p) => (
-                  <a key={p} href={tel(p)} className="hover:text-white">
+                  <a key={p} href={tel(p)} className="inline-flex min-h-11 items-center hover:text-white">
                     {p}
                   </a>
                 ))}
               </span>
             </li>
             <li>
-              <a href={whatsappUrl()} className="flex gap-3 hover:text-white">
+              <a href={whatsappUrl()} className="flex min-h-11 items-center gap-3 hover:text-white">
                 <MessageCircle className="size-4 text-lime-400" /> WhatsApp {site.whatsapp.display}
               </a>
             </li>
             <li>
-              <a href={`mailto:${site.email}`} className="flex gap-3 hover:text-white">
+              <a href={`mailto:${site.email}`} className="flex min-h-11 items-center gap-3 hover:text-white">
                 <Mail className="size-4 text-lime-400" /> {site.email}
               </a>
             </li>
