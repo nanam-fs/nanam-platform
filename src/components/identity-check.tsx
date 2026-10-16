@@ -50,13 +50,13 @@ export function IdentityCheck({ applicationId, uploadToken, initialStatus }: { a
 
   const done = phase === "verified";
   return (
-    <section className={cn("rounded-3xl border p-6 text-left md:p-8", done ? "border-forest-600/30 bg-forest-50" : "border-line bg-white")}>
-      <div className="flex items-start gap-4">
+    <section className={cn("rounded-3xl border p-5 text-left sm:p-6 md:p-8", done ? "border-forest-600/30 bg-forest-50" : "border-line bg-white")}>
+      <div className="flex flex-col items-start gap-4 sm:flex-row">
         <span className={cn("grid size-12 shrink-0 place-items-center rounded-2xl", done ? "bg-forest-600 text-white" : "bg-forest-950 text-lime-400")}>
           {done ? <CheckCircle2 className="size-6" /> : <ScanFace className="size-6" strokeWidth={1.6} />}
         </span>
         <div>
-          <p className="font-display text-2xl text-forest-950">{done ? "Identity verified" : "Verify your identity"}</p>
+          <p className="font-display text-2xl leading-tight text-forest-950">{done ? "Identity verified" : "Verify your identity"}</p>
           <p className="mt-1 text-sm text-muted">
             {done ? "Thanks, your ID and selfie matched. Nothing more to do here." : "Photograph your National ID and take a quick selfie. Most checks finish in seconds and speed up your approval."}
           </p>

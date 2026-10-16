@@ -13,15 +13,16 @@ export function DemoCode({ code, inputId = "code" }: { code: string; inputId?: s
     el.focus();
   }
   return (
-    <div role="status" className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-lime-600/60 bg-lime-300/25 px-4 py-3 text-sm text-forest-900">
-      <MessageSquareText className="size-4 shrink-0 text-forest-700" />
-      <p className="min-w-0 flex-1">
-        <span className="font-medium">Demo: no SMS is sent.</span> The code is{" "}
-        <span className="font-mono text-base font-semibold tracking-[0.2em] text-forest-950">{code}</span>
+    <div role="status" className="rounded-xl border border-dashed border-lime-600/60 bg-lime-300/25 px-4 py-3 text-forest-900">
+      <p className="flex items-center gap-2 text-xs font-medium">
+        <MessageSquareText className="size-3.5 shrink-0 text-forest-700" /> Demo: no SMS is sent. Your code is
       </p>
-      <button type="button" onClick={fill} className="min-h-9 rounded-full bg-forest-950 px-3.5 text-xs font-medium text-white hover:bg-forest-800">
-        Use code
-      </button>
+      <div className="mt-1.5 flex items-center justify-between gap-3">
+        <span className="font-mono text-xl font-semibold tracking-[0.25em] text-forest-950">{code}</span>
+        <button type="button" onClick={fill} className="min-h-10 shrink-0 rounded-full bg-forest-950 px-4 text-xs font-medium text-white hover:bg-forest-800">
+          Use code
+        </button>
+      </div>
     </div>
   );
 }

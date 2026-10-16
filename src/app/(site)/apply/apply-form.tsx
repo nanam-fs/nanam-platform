@@ -71,11 +71,11 @@ export function ApplyForm({
     return (
       <div ref={topRef} className="scroll-mt-28 rounded-3xl border border-line bg-white p-10 text-center md:p-14">
         <CheckCircle2 className="mx-auto size-14 text-forest-600" strokeWidth={1.5} />
-        <h2 className="mt-6 font-display text-4xl text-forest-950">Application received</h2>
+        <h2 className="mt-6 font-display text-3xl text-forest-950 sm:text-4xl">Application received</h2>
         <p className="mx-auto mt-3 max-w-md text-muted">{state.message}</p>
-        <p className="mx-auto mt-8 inline-flex flex-col rounded-2xl bg-cream px-8 py-4">
+        <p className="mx-auto mt-8 inline-flex max-w-full flex-col rounded-2xl bg-cream px-5 py-4 sm:px-8">
           <span className="text-xs uppercase tracking-[0.16em] text-muted">Your reference</span>
-          <span className="mt-1 font-mono text-xl font-medium text-forest-950">{state.reference}</span>
+          <span className="mt-1 whitespace-nowrap font-mono text-lg font-medium text-forest-950 sm:text-xl">{state.reference}</span>
         </p>
         {state.upload && (
           <div className="mx-auto mt-10 max-w-xl">
