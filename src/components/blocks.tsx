@@ -1,4 +1,5 @@
-import { ArrowRight, BriefcaseBusiness, Car, FileText, LandPlot, Plus, type LucideIcon } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
+import { CarIcon, ContractIcon, IconStage, LandIcon, ShopIcon } from "./animated-icons";
 import Link from "next/link";
 import { faqs } from "@/lib/content";
 import type { Product, ProductSlug } from "@/lib/products";
@@ -6,20 +7,21 @@ import { whatsappUrl } from "@/lib/site";
 import { cn, compactUGX } from "@/lib/utils";
 import { ButtonLink } from "./ui";
 
-export const productIcons: Record<ProductSlug, LucideIcon> = {
-  logbook: Car,
-  business: BriefcaseBusiness,
-  "asset-finance": LandPlot,
-  "contract-finance": FileText,
+export const productIcons: Record<ProductSlug, typeof CarIcon> = {
+  logbook: CarIcon,
+  business: ShopIcon,
+  "asset-finance": LandIcon,
+  "contract-finance": ContractIcon,
 };
 
 export function ProductCard({ product, featured }: { product: Product; featured?: boolean }) {
   const Icon = productIcons[product.slug];
   return (
+    <IconStage className="h-full">
     <Link
       href={`/loans/${product.slug}`}
       className={cn(
-        "group relative flex flex-col justify-between overflow-hidden rounded-3xl border p-7 transition-all duration-300 hover:-translate-y-1 md:p-8",
+        "group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border p-7 transition-all duration-300 hover:-translate-y-1 md:p-8",
         featured
           ? "surface-forest border-forest-800 text-white hover:shadow-2xl hover:shadow-forest-950/30"
           : "border-line bg-white hover:border-forest-600/30 hover:shadow-xl hover:shadow-forest-950/5",
@@ -32,7 +34,7 @@ export function ProductCard({ product, featured }: { product: Product; featured?
             featured ? "bg-lime-500 text-forest-950" : "bg-forest-50 text-forest-600",
           )}
         >
-          <Icon className="size-6" strokeWidth={1.6} />
+          <Icon className="size-7" />
         </div>
         <h3 className={cn("mt-8 font-display text-3xl", featured ? "text-white" : "text-forest-950")}>{product.name}</h3>
         <p className={cn("mt-3 max-w-sm text-pretty", featured ? "text-white/70" : "text-muted")}>{product.short}</p>
@@ -72,6 +74,7 @@ export function ProductCard({ product, featured }: { product: Product; featured?
         </span>
       </div>
     </Link>
+    </IconStage>
   );
 }
 

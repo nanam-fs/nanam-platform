@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Building2, Coins, UserRound } from "lucide-react";
+import { photos } from "@/lib/photos";
 import { PageHero } from "@/components/ui";
 import { PartnerForm } from "./partner-form";
 
@@ -19,6 +20,7 @@ export default function PartnersPage() {
     <>
       <PageHero
         eyebrow="NANAM Partner Network"
+        photo={photos.business}
         title={
           <>
             Refer clients. <em className="text-lime-400">Earn commission.</em>

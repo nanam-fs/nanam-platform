@@ -20,7 +20,7 @@ export default function CalculatorPage() {
         }
         body="Pick an amount and a term to see your instalment, total cost and month-by-month schedule."
       />
-      <section className="container-page grid gap-12 py-20 lg:grid-cols-[1.4fr_1fr]">
+      <section className="container-page grid gap-12 py-20 lg:grid-cols-[1.4fr_1fr] [&>*]:min-w-0">
         <LoanCalculator showSchedule />
         <aside className="space-y-6 text-muted">
           <h2 className="font-display text-3xl text-forest-950">How we calculate</h2>

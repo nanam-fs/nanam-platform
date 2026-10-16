@@ -195,7 +195,7 @@ function Row({ label, value, strong, glass }: { label: string; value: string; st
   return (
     <div className="flex justify-between gap-4">
       <dt className={glass ? "text-white/60" : "text-muted"}>{label}</dt>
-      <dd className={cn("tabular", strong && "font-semibold")}>{value}</dd>
+      <dd className={cn("tabular whitespace-nowrap", strong && "font-semibold")}>{value}</dd>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { products } from "@/lib/products";
+import { photoCredits } from "@/lib/photos";
 import { site, tel, whatsappUrl } from "@/lib/site";
 import { Logo } from "./logo";
 
@@ -21,6 +22,17 @@ const columns = [
       { href: "/faq", label: "FAQs" },
       { href: "/apply", label: "Apply online" },
       { href: "/portal", label: "Customer sign in" },
+      { href: "/legal/complaints", label: "Complaints" },
+      { href: "/legal/security", label: "Fraud & security" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { href: "/legal/privacy", label: "Privacy policy" },
+      { href: "/legal/terms", label: "Terms & conditions" },
+      { href: "/legal/loan-terms", label: "Key loan facts" },
+      { href: "/legal/cookies", label: "Cookie notice" },
     ],
   },
 ];
@@ -59,7 +71,7 @@ export function SiteFooter() {
             </li>
           </ul>
         </div>
-        <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-10 sm:grid-cols-4">
           {columns.map((col) => (
             <div key={col.title}>
               <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-white/50">{col.title}</h3>
@@ -88,9 +100,10 @@ export function SiteFooter() {
               Loans are subject to verification and approval. Calculator figures are indicative.
             </p>
           </div>
-          <p className="text-xs text-white/45">
-            © {new Date().getFullYear()} {site.name}
-          </p>
+          <div className="text-xs text-white/45 md:text-right">
+            <p>© {new Date().getFullYear()} {site.name}</p>
+            <p className="mt-1">Photography: Unsplash contributors ({photoCredits.join(", ")}). People pictured are not NANAM clients.</p>
+          </div>
         </div>
       </div>
     </footer>

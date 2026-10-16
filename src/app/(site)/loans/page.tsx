@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Check } from "lucide-react";
 import { CtaBand, ProductCard } from "@/components/blocks";
+import { photos } from "@/lib/photos";
 import { PageHero, SectionHeading } from "@/components/ui";
 import { commonRequirements, products } from "@/lib/products";
 import { site } from "@/lib/site";
@@ -17,6 +18,7 @@ export default function LoansPage() {
     <>
       <PageHero
         eyebrow="Loan products"
+        photo={photos.logbook}
         title={
           <>
             Secured loans, <em className="text-lime-400">priced plainly.</em>

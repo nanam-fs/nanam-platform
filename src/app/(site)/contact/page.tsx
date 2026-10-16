@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { photos } from "@/lib/photos";
 import { PageHero } from "@/components/ui";
 import { site, tel, whatsappUrl } from "@/lib/site";
 import { ContactForm } from "./contact-form";
@@ -21,6 +22,7 @@ export default function ContactPage() {
     <>
       <PageHero
         eyebrow="Contact"
+        photo={photos.hero}
         title={
           <>
             Talk to a person, <em className="text-lime-400">not a queue.</em>

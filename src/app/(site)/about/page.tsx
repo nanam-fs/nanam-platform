@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { photos } from "@/lib/photos";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
 import { CtaBand } from "@/components/blocks";
@@ -16,6 +17,7 @@ export default function AboutPage() {
     <>
       <PageHero
         eyebrow={`About ${site.abbreviation}`}
+        photo={photos.land}
         title={
           <>
             Rooted in Namugongo. <em className="text-lime-400">Growing with Uganda.</em>

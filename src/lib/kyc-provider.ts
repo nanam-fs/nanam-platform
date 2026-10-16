@@ -54,7 +54,7 @@ function smileId(): KycProvider | null {
       fd.set("id_type", "IDENTITY_CARD");
       fd.set("user_id", applicationId);
       // TO CONFIRM in sandbox: nested objects are sent as JSON strings in the multipart body.
-      fd.set("consent", JSON.stringify({ granted: true, granted_at: consentAt.toISOString(), notice_language: "EN", notice_privacy_policy_url: `${process.env.PUBLIC_BASE_URL ?? "https://nanam.ug"}/privacy` }));
+      fd.set("consent", JSON.stringify({ granted: true, granted_at: consentAt.toISOString(), notice_language: "EN", notice_privacy_policy_url: `${process.env.PUBLIC_BASE_URL ?? "https://nanam.ug"}/legal/privacy` }));
       fd.set("user_details", JSON.stringify({ given_names: applicant.givenNames, last_name: applicant.lastName, phone_number: applicant.phone, ...(applicant.email ? { email: applicant.email } : {}) }));
       fd.set("partner_params", JSON.stringify({ job_id: checkId, user_id: applicationId }));
       if (process.env.PUBLIC_BASE_URL?.startsWith("https://")) fd.set("callback_url", `${process.env.PUBLIC_BASE_URL}/api/kyc/smileid/callback`);

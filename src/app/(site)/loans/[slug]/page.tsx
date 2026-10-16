@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
+import { photos } from "@/lib/photos";
 import { ArrowRight, Check } from "lucide-react";
 import { CtaBand, ProductCard, productIcons } from "@/components/blocks";
 import { LoanCalculator } from "@/components/loan-calculator";
@@ -22,11 +24,14 @@ export default async function ProductPage({ params }: PageProps<"/loans/[slug]">
   const product = getProduct((await params).slug);
   if (!product) notFound();
   const Icon = productIcons[product.slug];
+  const photo = { logbook: photos.logbook, business: photos.business, "asset-finance": photos.land, "contract-finance": photos.contract }[product.slug];
   const others = products.filter((p) => p.slug !== product.slug);
 
   return (
     <>
-      <section className="surface-forest relative overflow-hidden text-white">
+      <section className="surface-forest relative isolate overflow-hidden text-white">
+        <Image src={photo.src} alt={photo.alt} fill priority sizes="100vw" className="-z-20 object-cover opacity-40" style={{ objectPosition: photo.position }} />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-r from-forest-950 via-forest-950/90 to-forest-950/50" />
         <div className="container-page grid items-start gap-14 pt-32 pb-20 md:pt-40 lg:grid-cols-[1.1fr_1fr] lg:gap-20 lg:pb-28">
           <div>
             <div className="flex items-center gap-3">

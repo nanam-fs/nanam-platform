@@ -28,7 +28,7 @@ export default function FaqPage() {
           </>
         }
       />
-      <section className="container-page grid gap-14 py-20 lg:grid-cols-[16rem_1fr]">
+      <section className="container-page grid gap-14 py-20 lg:grid-cols-[16rem_1fr] [&>*]:min-w-0">
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <nav aria-label="FAQ sections" className="flex gap-2 overflow-x-auto lg:flex-col">
             {groups.map((g) => (
