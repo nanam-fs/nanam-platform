@@ -42,7 +42,7 @@ export function SiteFooter() {
     <footer className="surface-forest text-white">
       <div className="container-page grid gap-12 py-20 lg:grid-cols-[1.4fr_2fr]">
         <div>
-          <Logo inverse />
+          <Logo inverse size="lg" />
           <p className="mt-6 max-w-sm text-white/65">{site.tagline}</p>
           <ul className="mt-8 space-y-3 text-sm text-white/80">
             <li className="flex gap-3">
@@ -90,19 +90,27 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="container-page flex flex-col gap-6 py-8 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-white px-3 py-2">
-              <Image src="/brand/umra.png" alt="UMRA" width={1024} height={324} className="h-7 w-auto" />
-            </div>
-            <p className="max-w-xl text-xs leading-relaxed text-white/55">
-              {site.name} is licensed and regulated by the {site.regulator.name} under the {site.regulator.act}.
-              Loans are subject to verification and approval. Calculator figures are indicative.
+        <div className="container-page py-8 md:py-10">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+            <a
+              href="https://umra.go.ug"
+              target="_blank"
+              rel="noopener"
+              aria-label="Uganda Microfinance Regulatory Authority"
+              className="inline-flex h-14 w-40 shrink-0 items-center justify-center rounded-xl bg-white px-4 shadow-sm"
+            >
+              <Image src="/brand/umra.png" alt="UMRA" width={1024} height={324} sizes="160px" loading="eager" className="h-auto w-full" />
+            </a>
+            <p className="max-w-3xl text-sm leading-relaxed text-white/60 text-pretty">
+              {site.name} is licensed and regulated by the {site.regulator.name} under the {site.regulator.act}. Loans are subject to verification and
+              approval. Calculator figures are indicative.
             </p>
           </div>
-          <div className="text-xs text-white/45 md:text-right">
-            <p>© {new Date().getFullYear()} {site.name}</p>
-            <p className="mt-1">Photography: Unsplash contributors ({photoCredits.join(", ")}). People pictured are not NANAM clients.</p>
+          <div className="mt-8 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs leading-relaxed text-white/45 md:flex-row md:items-start md:justify-between md:gap-10">
+            <p className="shrink-0">© {new Date().getFullYear()} {site.name}</p>
+            <p className="max-w-xl text-pretty">
+              Photography: Unsplash contributors ({photoCredits.join(", ")}). People pictured are not NANAM clients.
+            </p>
           </div>
         </div>
       </div>
