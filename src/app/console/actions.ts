@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { and, asc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -10,7 +10,8 @@ import { db, schema } from "@/db";
 import type { ApplicationStatus } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { authorize, createSession, currentSessionId, destroySession, getStaff, loginThrottle, PermissionError } from "@/lib/auth";
-import { allocate, buildSchedule, canTransition, settlementQuote } from "@/lib/lending";
+import { buildSchedule, canTransition } from "@/lib/lending";
+import { postRepayment, RepaymentError } from "@/lib/repayments";
 import { hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/password";
 import type { Permission } from "@/lib/permissions";
 import { site } from "@/lib/site";
@@ -311,52 +312,25 @@ export async function recordRepayment(loanId: string, _: ActionResult, fd: FormD
       })
       .parse(form(fd));
 
-    return db.transaction(async (tx) => {
-      const [loan] = await tx.select().from(schema.loans).where(eq(schema.loans.id, loanId)).for("update");
-      if (!loan || loan.status !== "active") throw new ActionError("Repayments can only be recorded on an active loan.");
-
-      const dup = await tx.query.repayments.findFirst({
-        where: and(eq(schema.repayments.method, data.method), eq(schema.repayments.reference, data.reference)),
-        columns: { id: true },
-      });
-      if (dup) throw new ActionError("A repayment with this reference has already been recorded.");
-
-      if (data.settle) {
-        const lines = await tx.select().from(schema.installments).where(eq(schema.installments.loanId, loanId));
-        const s = settlementQuote(lines, data.receivedAt);
-        if (data.amount !== s.amount) {
-          throw new ActionError(`The settlement figure on ${data.receivedAt} is UGX ${s.amount.toLocaleString("en-UG")}. Record exactly that amount to settle.`);
-        }
-        for (const a of s.adjustments) {
-          await tx.update(schema.installments).set({ interestDue: a.interestDue, amountDue: a.amountDue }).where(eq(schema.installments.id, a.id));
-        }
-        await audit(tx, { actorId: actor.id, action: "loan.early_settlement", entity: "loan", entityId: loanId, detail: { amount: s.amount, interestWaived: s.waived } });
-      }
-
-      const open = await tx
-        .select()
-        .from(schema.installments)
-        .where(and(eq(schema.installments.loanId, loanId), lt(schema.installments.amountPaid, schema.installments.amountDue)))
-        .orderBy(asc(schema.installments.seq));
-      const outstanding = open.reduce((s, i) => s + i.amountDue - i.amountPaid, 0);
-      const { updates, excess } = allocate(data.amount, open);
-      if (excess > 0) {
-        throw new ActionError(`This is more than the UGX ${outstanding.toLocaleString("en-UG")} outstanding. Record the exact amount and refund the difference.`);
-      }
-
-      const receivedAt = new Date(`${data.receivedAt}T12:00:00Z`);
-      await tx.insert(schema.repayments).values({ loanId, ...data, receivedAt, recordedBy: actor.id });
-      for (const u of updates) {
-        await tx
-          .update(schema.installments)
-          .set({ amountPaid: sql`${schema.installments.amountPaid} + ${u.add}`, paidAt: u.settles ? receivedAt : null })
-          .where(eq(schema.installments.id, u.id));
-      }
-      const closes = outstanding - data.amount === 0;
-      if (closes) await tx.update(schema.loans).set({ status: "closed", closedAt: receivedAt }).where(eq(schema.loans.id, loanId));
-      await audit(tx, { actorId: actor.id, action: "loan.repayment", entity: "loan", entityId: loanId, detail: { ...data, closes } });
-      return closes ? "Repayment recorded. The loan is now fully repaid. Collateral can be released." : "Repayment recorded.";
-    });
+    try {
+      const result = await db.transaction((tx) =>
+        postRepayment(tx, {
+          loanId,
+          amount: data.amount,
+          method: data.method,
+          reference: data.reference,
+          receivedOn: data.receivedAt,
+          recordedBy: actor.id,
+          source: "staff",
+          settle: !!data.settle,
+          onExcess: "reject",
+        }),
+      );
+      return result.closes ? "Repayment recorded. The loan is now fully repaid. Collateral can be released." : "Repayment recorded.";
+    } catch (err) {
+      if (err instanceof RepaymentError) throw new ActionError(err.message);
+      throw err;
+    }
   });
   revalidatePath("/console", "layout");
   return r;

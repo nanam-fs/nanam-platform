@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { addMonths, allocate, buildSchedule, canTransition, settlementQuote } from "./lending";
 import { quote } from "./loan-math";
+import { detectNetwork } from "./phone";
 
 describe("buildSchedule", () => {
   it("clears principal to exactly zero in whole shillings", () => {
@@ -55,5 +56,15 @@ describe("workflow", () => {
     assert.equal(canTransition("new", "disbursed"), false);
     assert.equal(canTransition("recommended", "approved"), true);
     assert.equal(canTransition("declined", "reviewing"), false);
+  });
+});
+
+describe("detectNetwork", () => {
+  it("maps Ugandan prefixes", () => {
+    assert.equal(detectNetwork("+256772123456"), "mtn");
+    assert.equal(detectNetwork("0782123456"), "mtn");
+    assert.equal(detectNetwork("0701481852"), "airtel");
+    assert.equal(detectNetwork("0752123456"), "airtel");
+    assert.equal(detectNetwork("0712123456"), null);
   });
 });

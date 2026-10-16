@@ -27,6 +27,7 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
       repayments: { orderBy: desc(schema.repayments.receivedAt), with: { recorder: { columns: { name: true } } } },
       application: { columns: { id: true, reference: true, nin: true }, with: { collateral: true } },
       commission: { with: { agent: { columns: { fullName: true } } } },
+      paymentRequests: { orderBy: desc(schema.paymentRequests.createdAt), limit: 20 },
     },
   });
   if (!loan) notFound();
@@ -38,6 +39,7 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
   const arrears = loan.installments.filter((i) => i.dueDate < t).reduce((s, i) => s + i.amountDue - i.amountPaid, 0);
   const next = loan.installments.find((i) => i.amountPaid < i.amountDue);
   const settlement = settlementQuote(loan.installments, t);
+  const refundDue = loan.paymentRequests.filter((p) => p.excess > 0);
 
   return (
     <>
@@ -58,6 +60,13 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
           </>
         }
       />
+
+      {refundDue.length > 0 && (
+        <p role="alert" className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <strong>Refund due:</strong> {refundDue.map((p) => `${formatUGX(p.excess)} from ${p.payerMsisdn} (${p.providerTxnId ?? p.providerRef})`).join("; ")}.
+          The client paid more than was owed via Mobile Money.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Outstanding" value={formatUGX(outstanding)} hint="Remaining scheduled instalments" />
@@ -115,6 +124,37 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
             </Table>
           </Card>
 
+          {loan.paymentRequests.length > 0 && (
+            <Card title="Mobile Money requests from the portal" padded={false}>
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Requested</th>
+                    <th>Payer</th>
+                    <th className="text-right">Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loan.paymentRequests.map((p) => (
+                    <tr key={p.id}>
+                      <td className="whitespace-nowrap">{fmtDate(p.createdAt)}</td>
+                      <td className="text-xs">
+                        {p.network === "mtn" ? "MTN" : "Airtel"} {p.payerMsisdn}
+                        <p className="font-mono text-muted">{p.providerTxnId ?? p.provider}</p>
+                      </td>
+                      <td className="text-right tabular">{formatUGX(p.amount)}</td>
+                      <td>
+                        <Badge tone={p.status === "successful" ? "good" : p.status === "failed" ? "bad" : "progress"}>{p.status}</Badge>
+                        {p.failureReason && <p className="mt-1 text-xs text-muted">{p.failureReason}</p>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </Card>
+          )}
+
           <Card title="Payments received" padded={false}>
             {loan.repayments.length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted">No payments yet.</p>
@@ -136,7 +176,7 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
                       <td>{methodLabel[r.method]}</td>
                       <td className="font-mono text-xs">{r.reference}</td>
                       <td className="text-right tabular">{formatUGX(r.amount)}</td>
-                      <td className="text-muted">{r.recorder.name}</td>
+                      <td className="text-muted">{r.recorder?.name ?? "Customer (Mobile Money)"}</td>
                     </tr>
                   ))}
                 </tbody>

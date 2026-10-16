@@ -1,6 +1,6 @@
 # NANAM Financial Services — web platform
 
-Public website + staff console for [nanam.ug](https://nanam.ug).
+Public website, staff console and customer portal for [nanam.ug](https://nanam.ug).
 
 **Stack:** Next.js 16 (App Router, Server Actions, React 19) · TypeScript · Tailwind CSS v4 · Postgres via Drizzle ORM · Zod. Deploys to Vercel.
 
@@ -13,6 +13,8 @@ npm run dev        # http://localhost:3000  ·  console: http://localhost:3000/c
 ```
 
 Staff sign-in details for local use are written to `.data/seed-credentials.txt` (one account per role, generated passwords, gitignored).
+
+**Customer portal (`/portal`) locally:** sign in with a demo borrower's number (e.g. `0772 111 999`). In test mode the SMS code is written to `.data/sms-outbox.log` and Mobile Money payments are simulated (approve after ~6 s; payer numbers ending `000` are declined). Test mode is on under `npm run dev`; for `npm start` set `NANAM_TEST_MODE=1`. It can never activate on a Vercel production deployment.
 Stop the dev server before running any `db:*` command. The local database is a single-process file.
 
 | Command | What it does |
@@ -27,7 +29,19 @@ Stop the dev server before running any `db:*` command. The local database is a s
 1. Create a Postgres database (recommended: **Neon** via the Vercel Marketplace: `vercel integration add neon`), which sets `DATABASE_URL`.
 2. `DATABASE_URL=... npm run db:migrate`, then `DATABASE_URL=... npm run db:seed` to create the four staff accounts (no demo data in production).
 3. Sign in as admin, change the password, create real staff accounts under **Team**, and disable the seed accounts.
-4. Deploy to Vercel with `DATABASE_URL` set.
+4. Set the environment variables below and deploy to Vercel.
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection |
+| `PUBLIC_BASE_URL` | e.g. `https://nanam.ug`, used for provider callback URLs |
+| `AT_USERNAME`, `AT_API_KEY`, `AT_SENDER_ID` (optional) | Africa's Talking SMS for portal sign-in codes |
+| `MTN_MOMO_BASE_URL`, `MTN_MOMO_SUBSCRIPTION_KEY`, `MTN_MOMO_API_USER`, `MTN_MOMO_API_KEY`, `MTN_MOMO_TARGET_ENV` (`mtnuganda`) | MTN MoMo Collections |
+| `AIRTEL_BASE_URL`, `AIRTEL_CLIENT_ID`, `AIRTEL_CLIENT_SECRET` | Airtel Money Collections |
+| `CRON_SECRET` | Protects the payment sweep (`vercel.ts` runs it every 15 min) |
+
+Without SMS credentials the portal can't send codes; without a network's Mobile Money credentials, that network is hidden. Nothing silently falls back to test mode in production.
+Register callback URLs with the providers: `https://nanam.ug/api/payments/mtn/callback` and `https://nanam.ug/api/payments/airtel/callback`.
 
 ## Staff console — `/console`
 
@@ -50,6 +64,18 @@ Stop the dev server before running any `db:*` command. The local database is a s
 | Finance | Disburse approved loans, record repayments, pay commissions |
 | Administrator | All of the above + team management + audit log |
 
+## Customer portal — `/portal`
+
+| Feature | How it works |
+| --- | --- |
+| Phone sign-in | 6-digit SMS code (hashed, single-use, 10 min, 5 attempts, 3 codes per 15 min). Codes only go to numbers with an application or loan; the response is identical either way |
+| Overview | Balance, next payment, overdue warning, repayment progress, early-payoff saving, live application tracker |
+| Loan details | Schedule with paid / overdue status, payment history |
+| Statement | Printable ledger (save as PDF) that reconciles charged vs paid to a zero balance |
+| Mobile Money | MTN MoMo or Airtel Money prompt on the customer's phone. Pay next instalment, overdue amount, full payoff or any amount |
+
+**Payment safety:** money is posted only after the provider confirms it. Callbacks only identify which payment to re-check, so the outcome is always re-queried from the provider. Posting is idempotent (one transaction claims the request and posts it). Duplicate transaction IDs are rejected. Overpayments are posted up to the amount owed and the excess is flagged for refund in the console. A sweep re-checks anything unresolved.
+
 ## Where things live
 
 | Path | What |
@@ -61,6 +87,10 @@ Stop the dev server before running any `db:*` command. The local database is a s
 | `src/db/schema.ts` | Database tables |
 | `src/app/(site)/` | Public website |
 | `src/app/console/` | Staff console (`actions.ts` holds every server mutation) |
+| `src/app/portal/` | Customer portal |
+| `src/lib/repayments.ts` | The single path for posting money to a loan (staff and Mobile Money) |
+| `src/lib/payments.ts` · `momo.ts` · `sms.ts` | Payment requests and reconciliation, MTN/Airtel clients, SMS |
+| `src/lib/customer-auth.ts` | Portal OTP sign-in and sessions |
 
 ## Assumptions to confirm with NANAM
 
@@ -78,8 +108,8 @@ Stop the dev server before running any `db:*` command. The local database is a s
 
 ## Roadmap
 
-- **Next — customer portal:** phone-number OTP sign-in, balances, schedule, statements, document upload, Mobile Money repayment (MTN MoMo / Airtel Money collections API) with automatic reconciliation.
-- SMS reminders before due dates and on arrears (e.g. Africa's Talking).
+- SMS reminders before due dates and on arrears (SMS sending is already built in `src/lib/sms.ts`).
+- Refund workflow for Mobile Money overpayments (currently flagged in the console for manual refund).
 - Document uploads on applications (ID, statements, logbook scans) to private blob storage.
 - Agent self-service dashboard (referrals, commission statements).
 - Privacy policy and loan terms pages (legal to supply); UMRA licence number in the footer.

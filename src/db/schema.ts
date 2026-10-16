@@ -223,9 +223,9 @@ export const repayments = pgTable(
     method: paymentMethod("method").notNull(),
     reference: text("reference").notNull(),
     receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
-    recordedBy: uuid("recorded_by")
-      .notNull()
-      .references(() => staff.id),
+    // Null when posted automatically from a confirmed Mobile Money payment.
+    recordedBy: uuid("recorded_by").references(() => staff.id),
+    source: text("source", { enum: ["staff", "portal"] }).notNull().default("staff"),
     createdAt: createdAt(),
   },
   (t) => [index("repayments_loan_idx").on(t.loanId), uniqueIndex("repayments_method_ref_uq").on(t.method, t.reference)],
@@ -245,6 +245,65 @@ export const commissions = pgTable("commissions", {
   paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
+
+/* ───────────── Customer portal ───────────── */
+
+export const otpCodes = pgTable(
+  "otp_codes",
+  {
+    id: id(),
+    phone: text("phone").notNull(),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    ip: text("ip"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("otp_phone_idx").on(t.phone, t.createdAt)],
+);
+
+export const customerSessions = pgTable(
+  "customer_sessions",
+  {
+    id: text("id").primaryKey(),
+    phone: text("phone").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("customer_sessions_phone_idx").on(t.phone)],
+);
+
+export const momoNetwork = pgEnum("momo_network", ["mtn", "airtel"]);
+export const paymentRequestStatus = pgEnum("payment_request_status", ["pending", "successful", "failed", "expired"]);
+
+/** A customer-initiated Mobile Money collection. Posted to the loan only once the provider confirms it. */
+export const paymentRequests = pgTable(
+  "payment_requests",
+  {
+    id: id(),
+    loanId: uuid("loan_id")
+      .notNull()
+      .references(() => loans.id),
+    customerPhone: text("customer_phone").notNull(),
+    payerMsisdn: text("payer_msisdn").notNull(),
+    network: momoNetwork("network").notNull(),
+    amount: ugx("amount").notNull(),
+    purpose: text("purpose", { enum: ["instalment", "arrears", "settlement", "custom"] }).notNull(),
+    status: paymentRequestStatus("status").notNull().default("pending"),
+    provider: text("provider").notNull(),
+    providerRef: text("provider_ref").notNull().unique(),
+    providerTxnId: text("provider_txn_id"),
+    failureReason: text("failure_reason"),
+    // Amount received above what was owed at posting time; due back to the client.
+    excess: ugx("excess").notNull().default(0),
+    repaymentId: uuid("repayment_id").references(() => repayments.id),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("payment_requests_loan_idx").on(t.loanId), index("payment_requests_status_idx").on(t.status)],
+);
 
 /* ───────────── Inbox & audit ───────────── */
 
@@ -297,11 +356,17 @@ export const loansRelations = relations(loans, ({ one, many }) => ({
   application: one(applications, { fields: [loans.applicationId], references: [applications.id] }),
   installments: many(installments),
   repayments: many(repayments),
+  paymentRequests: many(paymentRequests),
   commission: one(commissions, { fields: [loans.id], references: [commissions.loanId] }),
 }));
 
 export const installmentsRelations = relations(installments, ({ one }) => ({
   loan: one(loans, { fields: [installments.loanId], references: [loans.id] }),
+}));
+
+export const paymentRequestsRelations = relations(paymentRequests, ({ one }) => ({
+  loan: one(loans, { fields: [paymentRequests.loanId], references: [loans.id] }),
+  repayment: one(repayments, { fields: [paymentRequests.repaymentId], references: [repayments.id] }),
 }));
 
 export const repaymentsRelations = relations(repayments, ({ one }) => ({
@@ -324,3 +389,4 @@ export type Application = typeof applications.$inferSelect;
 export type ApplicationStatus = Application["status"];
 export type Loan = typeof loans.$inferSelect;
 export type Installment = typeof installments.$inferSelect;
+export type PaymentRequest = typeof paymentRequests.$inferSelect;
