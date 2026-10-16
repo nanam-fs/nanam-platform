@@ -22,7 +22,8 @@ Stop the dev server before running any `db:*` command. The local database is a s
 | `npm run db:generate` | Create a migration after editing `src/db/schema.ts` |
 | `npm run db:migrate` | Apply migrations (local, or to `DATABASE_URL` if set) |
 | `npm run db:seed` | Create staff accounts (+ demo data locally only) |
-| `npm test` | Lending engine unit tests |
+| `npm run db:staff-passwords` | Issue fresh passwords for the local seed staff accounts |
+| `npm test` | Lending engine and SMS rule unit tests |
 
 ## Going to production
 
@@ -38,7 +39,7 @@ Stop the dev server before running any `db:*` command. The local database is a s
 | `AT_USERNAME`, `AT_API_KEY`, `AT_SENDER_ID` (optional) | Africa's Talking SMS for portal sign-in codes |
 | `MTN_MOMO_BASE_URL`, `MTN_MOMO_SUBSCRIPTION_KEY`, `MTN_MOMO_API_USER`, `MTN_MOMO_API_KEY`, `MTN_MOMO_TARGET_ENV` (`mtnuganda`) | MTN MoMo Collections |
 | `AIRTEL_BASE_URL`, `AIRTEL_CLIENT_ID`, `AIRTEL_CLIENT_SECRET` | Airtel Money Collections |
-| `CRON_SECRET` | Protects the payment sweep (`vercel.ts` runs it every 15 min) |
+| `CRON_SECRET` | Protects the cron routes (`vercel.ts`: payment sweep every 15 min, reminders daily 09:00 EAT) |
 
 Without SMS credentials the portal can't send codes; without a network's Mobile Money credentials, that network is hidden. Nothing silently falls back to test mode in production.
 Register callback URLs with the providers: `https://nanam.ug/api/payments/mtn/callback` and `https://nanam.ug/api/payments/airtel/callback`.
@@ -76,6 +77,18 @@ Register callback URLs with the providers: `https://nanam.ug/api/payments/mtn/ca
 
 **Payment safety:** money is posted only after the provider confirms it. Callbacks only identify which payment to re-check, so the outcome is always re-queried from the provider. Posting is idempotent (one transaction claims the request and posts it). Duplicate transaction IDs are rejected. Overpayments are posted up to the amount owed and the excess is flagged for refund in the console. A sweep re-checks anything unresolved.
 
+## SMS to clients
+
+| Message | When |
+| --- | --- |
+| Due soon | 1–3 days before an instalment is due |
+| Due today | On the due date |
+| Overdue | 1, 7 and 30+ days after the oldest missed instalment: one message per loan with the total owed |
+| Receipt | Instantly when any repayment posts (staff entry or Mobile Money), with the new balance |
+| Disbursed | When a loan is paid out, with the first due date |
+
+Reminders run daily at 09:00 Kampala time (and on demand from **Console → SMS & reminders**). Every message has a dedupe key, so reruns never text a client twice. Failed sends retry up to 3 times. While a loan is in arrears it gets only the arrears message. Wording is factual and polite, and every template is unit-tested to fit in one 160-character SMS.
+
 ## Where things live
 
 | Path | What |
@@ -91,6 +104,7 @@ Register callback URLs with the providers: `https://nanam.ug/api/payments/mtn/ca
 | `src/lib/repayments.ts` | The single path for posting money to a loan (staff and Mobile Money) |
 | `src/lib/payments.ts` · `momo.ts` · `sms.ts` | Payment requests and reconciliation, MTN/Airtel clients, SMS |
 | `src/lib/customer-auth.ts` | Portal OTP sign-in and sessions |
+| `src/lib/reminder-rules.ts` · `notifications.ts` | Which SMS to send when (pure, tested) · delivery with dedupe and retries |
 
 ## Assumptions to confirm with NANAM
 
@@ -105,10 +119,10 @@ Register callback URLs with the providers: `https://nanam.ug/api/payments/mtn/ca
 | Early settlement | Overdue + current period in full; future interest waived | `settlementQuote` in `src/lib/lending.ts` |
 | Agent commission | 1% of principal, paid on disbursement | `agents.commission_rate` (per agent) |
 | Penalties on late payment | None charged (not modelled) | — |
+| Reminder schedule | 3 days before, due day, 1 / 7 / 30 days overdue | `planReminders` in `src/lib/reminder-rules.ts` |
 
 ## Roadmap
 
-- SMS reminders before due dates and on arrears (SMS sending is already built in `src/lib/sms.ts`).
 - Refund workflow for Mobile Money overpayments (currently flagged in the console for manual refund).
 - Document uploads on applications (ID, statements, logbook scans) to private blob storage.
 - Agent self-service dashboard (referrals, commission statements).

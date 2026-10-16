@@ -17,6 +17,7 @@ const matrix = {
   "agent.manage": ["manager", "admin"],
   "commission.pay": ["finance", "admin"],
   "message.manage": ["officer", "manager", "admin"],
+  "reminders.run": ["finance", "manager", "admin"],
   "audit.view": ["manager", "admin"],
   "staff.manage": ["admin"],
 } as const satisfies Record<string, readonly Role[]>;

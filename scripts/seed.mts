@@ -5,9 +5,10 @@
  */
 import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { eq, sql } from "drizzle-orm";
 import { createDb } from "../src/db/client";
-import { assertNoServerRunning } from "../src/db/local-lock";
+import { assertNoServerRunning, credentialsPath } from "../src/db/local-lock";
 import * as s from "../src/db/schema";
 import { allocate, buildSchedule, isoDate } from "../src/lib/lending";
 import { hashPassword } from "../src/lib/password";
@@ -37,9 +38,10 @@ for (const t of team) {
   staffIds[t.role] = row.id;
   creds.push(`${t.role.padEnd(8)} ${t.email}  ${password}`);
 }
-mkdirSync(".data", { recursive: true });
-writeFileSync(".data/seed-credentials.txt", creds.join("\n") + "\n", { mode: 0o600 });
-console.log("✓ staff created — credentials in .data/seed-credentials.txt");
+const credFile = credentialsPath();
+mkdirSync(dirname(credFile), { recursive: true });
+writeFileSync(credFile, creds.join("\n") + "\n", { mode: 0o600 });
+console.log(`✓ staff created — credentials in ${credFile}`);
 
 if (!demo) {
   await close();

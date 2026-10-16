@@ -305,6 +305,30 @@ export const paymentRequests = pgTable(
   (t) => [index("payment_requests_loan_idx").on(t.loanId), index("payment_requests_status_idx").on(t.status)],
 );
 
+/* ───────────── Customer SMS ───────────── */
+
+export const smsKind = pgEnum("sms_kind", ["due_soon", "due_today", "overdue_1", "overdue_7", "overdue_30", "receipt", "disbursed"]);
+
+/** Every SMS sent to a borrower. `dedupeKey` makes each message send at most once. */
+export const smsMessages = pgTable(
+  "sms_messages",
+  {
+    id: id(),
+    loanId: uuid("loan_id").references(() => loans.id),
+    phone: text("phone").notNull(),
+    kind: smsKind("kind").notNull(),
+    dedupeKey: text("dedupe_key").notNull().unique(),
+    body: text("body").notNull(),
+    status: text("status", { enum: ["queued", "sent", "failed"] }).notNull().default("queued"),
+    attempts: integer("attempts").notNull().default(0),
+    channel: text("channel"),
+    error: text("error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("sms_loan_idx").on(t.loanId), index("sms_created_idx").on(t.createdAt)],
+);
+
 /* ───────────── Inbox & audit ───────────── */
 
 export const messages = pgTable("messages", {
@@ -357,11 +381,16 @@ export const loansRelations = relations(loans, ({ one, many }) => ({
   installments: many(installments),
   repayments: many(repayments),
   paymentRequests: many(paymentRequests),
+  smsMessages: many(smsMessages),
   commission: one(commissions, { fields: [loans.id], references: [commissions.loanId] }),
 }));
 
 export const installmentsRelations = relations(installments, ({ one }) => ({
   loan: one(loans, { fields: [installments.loanId], references: [loans.id] }),
+}));
+
+export const smsMessagesRelations = relations(smsMessages, ({ one }) => ({
+  loan: one(loans, { fields: [smsMessages.loanId], references: [loans.id] }),
 }));
 
 export const paymentRequestsRelations = relations(paymentRequests, ({ one }) => ({

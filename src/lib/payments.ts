@@ -6,6 +6,7 @@ import { audit } from "./audit";
 import { settlementQuote } from "./lending";
 import { detectNetwork, providerByName, providerFor, type Network } from "./momo";
 import { today } from "./queries";
+import { notifyRepayment } from "./notifications";
 import { postRepayment, RepaymentError } from "./repayments";
 
 export class PaymentError extends Error {}
@@ -145,6 +146,7 @@ export async function syncPayment(id: string): Promise<PaymentRequest | undefine
   }
 
   // Confirmed by the provider: claim it and post in one transaction.
+  let postedRepayment: string | null = null;
   await db.transaction(async (tx) => {
     const [claimed] = await tx
       .update(schema.paymentRequests)
@@ -166,6 +168,7 @@ export async function syncPayment(id: string): Promise<PaymentRequest | undefine
         onExcess: "keep",
       });
       await tx.update(schema.paymentRequests).set({ repaymentId: result.repaymentId, excess: result.excess }).where(eq(schema.paymentRequests.id, id));
+      postedRepayment = result.repaymentId;
     } catch (err) {
       if (!(err instanceof RepaymentError)) throw err;
       // Money arrived but can't be applied (e.g. the loan was already settled): hold it for refund.
@@ -173,6 +176,7 @@ export async function syncPayment(id: string): Promise<PaymentRequest | undefine
       await audit(tx, { actorId: null, action: "payment.refund_due", entity: "loan", entityId: claimed.loanId, detail: { request: id, amount: claimed.amount, reason: err.message } });
     }
   });
+  if (postedRepayment) await notifyRepayment(postedRepayment).catch((e) => console.error("[sms] receipt failed", e));
   return db.query.paymentRequests.findFirst({ where: eq(schema.paymentRequests.id, id) });
 }
 

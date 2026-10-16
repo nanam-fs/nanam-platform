@@ -28,6 +28,7 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
       application: { columns: { id: true, reference: true, nin: true }, with: { collateral: true } },
       commission: { with: { agent: { columns: { fullName: true } } } },
       paymentRequests: { orderBy: desc(schema.paymentRequests.createdAt), limit: 20 },
+      smsMessages: { orderBy: desc(schema.smsMessages.createdAt), limit: 20 },
     },
   });
   if (!loan) notFound();
@@ -224,6 +225,23 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
                 </Link>
                 .
               </p>
+            )}
+          </Card>
+          <Card title="SMS to client">
+            {loan.smsMessages.length === 0 ? (
+              <p className="text-sm text-muted">No messages yet.</p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {loan.smsMessages.map((m) => (
+                  <li key={m.id}>
+                    <p className="flex items-center justify-between gap-2 text-xs text-muted">
+                      <span>{fmtDate(m.createdAt)} · {m.kind.replace("_", " ")}</span>
+                      <Badge tone={m.status === "sent" ? "good" : m.status === "failed" ? "bad" : "progress"}>{m.status}</Badge>
+                    </p>
+                    <p className="mt-1 text-ink/80">{m.body}</p>
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
           {loan.commission && (

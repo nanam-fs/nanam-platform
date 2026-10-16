@@ -3,6 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -11,6 +12,7 @@ import type { ApplicationStatus } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { authorize, createSession, currentSessionId, destroySession, getStaff, loginThrottle, PermissionError } from "@/lib/auth";
 import { buildSchedule, canTransition } from "@/lib/lending";
+import { notifyDisbursement, notifyRepayment, runReminders } from "@/lib/notifications";
 import { postRepayment, RepaymentError } from "@/lib/repayments";
 import { hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/password";
 import type { Permission } from "@/lib/permissions";
@@ -293,6 +295,7 @@ export async function disburse(applicationId: string, _: ActionResult, fd: FormD
       await audit(tx, { actorId: actor.id, action: "loan.disbursed", entity: "loan", entityId: loan.id, detail: { loan: reference, principal, fee, method: data.method, transactionRef: data.reference, date: data.date } });
       return loan.id;
     });
+    after(() => notifyDisbursement(loanId).catch((e) => console.error("[sms] disbursement notice failed", e)));
     return "Loan disbursed and repayment schedule created.";
   });
   revalidatePath("/console", "layout");
@@ -326,6 +329,7 @@ export async function recordRepayment(loanId: string, _: ActionResult, fd: FormD
           onExcess: "reject",
         }),
       );
+      after(() => notifyRepayment(result.repaymentId).catch((e) => console.error("[sms] receipt failed", e)));
       return result.closes ? "Repayment recorded. The loan is now fully repaid. Collateral can be released." : "Repayment recorded.";
     } catch (err) {
       if (err instanceof RepaymentError) throw new ActionError(err.message);
@@ -365,6 +369,19 @@ export async function markCommissionPaid(id: string) {
     return "Commission marked as paid.";
   });
   revalidatePath("/console/agents");
+  return r;
+}
+
+/* ───────────── SMS reminders ───────────── */
+
+export async function sendRemindersNow() {
+  const r = await run("reminders.run", async (actor) => {
+    const t = await runReminders();
+    await audit(db, { actorId: actor.id, action: "sms.reminders_run", entity: "sms", detail: t });
+    if (t.planned === 0) return "Nothing due for a reminder today.";
+    return `Reminders: ${t.sent} sent, ${t.duplicate} already sent earlier${t.failed ? `, ${t.failed} failed (will retry)` : ""}.`;
+  });
+  revalidatePath("/console/sms");
   return r;
 }
 

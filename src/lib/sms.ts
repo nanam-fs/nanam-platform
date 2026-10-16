@@ -1,5 +1,6 @@
 import "server-only";
 import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { testMode } from "./test-mode";
 
 /**
@@ -29,8 +30,9 @@ export async function sendSms(to: string, message: string) {
 
   if (!testMode()) throw new Error("SMS is not configured (set AT_USERNAME and AT_API_KEY).");
 
-  mkdirSync(".data", { recursive: true });
-  appendFileSync(".data/sms-outbox.log", `${new Date().toISOString()}  ${to}  ${message}\n`);
+  const outbox = process.env.SMS_OUTBOX ?? ".data/sms-outbox.log";
+  mkdirSync(dirname(outbox), { recursive: true });
+  appendFileSync(outbox, `${new Date().toISOString()}  ${to}  ${message}\n`);
   return { channel: "dev-outbox" as const };
 }
 
