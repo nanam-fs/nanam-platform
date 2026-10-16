@@ -7,10 +7,12 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { eq, sql } from "drizzle-orm";
 import { createDb } from "../src/db/client";
+import { assertNoServerRunning } from "../src/db/local-lock";
 import * as s from "../src/db/schema";
 import { allocate, buildSchedule, isoDate } from "../src/lib/lending";
 import { hashPassword } from "../src/lib/password";
 
+if (!process.env.DATABASE_URL) assertNoServerRunning();
 const { db, driver, close } = createDb();
 const demo = driver === "pglite" || process.env.SEED_DEMO === "1";
 

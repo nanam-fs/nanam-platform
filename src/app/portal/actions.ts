@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getCustomer, requestOtp, signOutCustomer, verifyOtp } from "@/lib/customer-auth";
 import { initiatePayment, PaymentError, syncPayment } from "@/lib/payments";
+import { testMode } from "@/lib/test-mode";
 import { db, schema } from "@/db";
 import { and, eq } from "drizzle-orm";
 
@@ -26,7 +27,8 @@ export async function loginStep(prev: LoginState, fd: FormData): Promise<LoginSt
     return { step: "code", phone: r.phone, message: `If ${r.phone} is registered with NANAM, we’ve sent it a 6-digit code.` };
   } catch (err) {
     console.error("[portal] could not send code", err);
-    return { step: "phone", error: "We couldn’t send a code right now. Please try again shortly." };
+    const detail = testMode() && err instanceof Error ? ` (${err.message})` : "";
+    return { step: "phone", error: `We couldn’t send a code right now. Please try again shortly.${detail}` };
   }
 }
 

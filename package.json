@@ -10,7 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.mts",
     "db:seed": "tsx scripts/seed.mts",
-    "db:reset": "rm -rf .data/pglite && npm run db:migrate && npm run db:seed",
+    "db:reset": "tsx scripts/reset.mts && npm run db:migrate && npm run db:seed",
     "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
