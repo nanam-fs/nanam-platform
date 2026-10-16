@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * NANAM design tokens.
+ * Brand colours are sampled directly from the NANAM logo:
+ *   forest #00572D (mark + wordmark), lime #8BC136 (tagline), peach #FEB58A (tree).
+ */
+@theme {
+  --color-forest-50: #eef6f1;
+  --color-forest-100: #d5eadd;
+  --color-forest-200: #a9d3ba;
+  --color-forest-300: #74b58f;
+  --color-forest-400: #3f9266;
+  --color-forest-500: #137545;
+  --color-forest-600: #00572d;
+  --color-forest-700: #004826;
+  --color-forest-800: #03381f;
+  --color-forest-900: #052a18;
+  --color-forest-950: #031a0f;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-lime-300: #c3e08d;
+  --color-lime-400: #a6d15b;
+  --color-lime-500: #8bc136;
+  --color-lime-600: #6f9d27;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-peach-200: #ffe1cd;
+  --color-peach-300: #fec9a6;
+  --color-peach-400: #feb58a;
+
+  --color-cream: #f7f5ef;
+  --color-sand: #ece8dc;
+  --color-ink: #0d1a12;
+  --color-muted: #5b6b61;
+  --color-line: #e2ddd0;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: var(--color-lime-400);
+    color: var(--color-forest-950);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-lime-500);
+    outline-offset: 2px;
+  }
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  @media (width >= 48rem) {
+    padding-inline: 2rem;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle grain + glow used on dark brand surfaces. */
+@utility surface-forest {
+  background-color: var(--color-forest-950);
+  background-image:
+    radial-gradient(60rem 40rem at 85% -10%, rgb(139 193 54 / 0.18), transparent 60%),
+    radial-gradient(50rem 30rem at -10% 110%, rgb(0 87 45 / 0.55), transparent 60%);
+}
+
+/* Range slider: lime track fill driven by --pct. */
+.range {
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-lime-500) var(--pct, 0%), rgb(127 127 127 / 0.25) var(--pct, 0%));
+  cursor: pointer;
+}
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #fff;
+  border: 6px solid var(--color-lime-500);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.25);
+}
+.range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 6px solid var(--color-lime-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }
