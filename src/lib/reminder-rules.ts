@@ -1,6 +1,6 @@
 import { site } from "./site";
 
-export type SmsKind = "due_soon" | "due_today" | "overdue_1" | "overdue_7" | "overdue_30" | "receipt" | "disbursed";
+export type SmsKind = "due_soon" | "due_today" | "overdue_1" | "overdue_7" | "overdue_30" | "receipt" | "disbursed" | "refund";
 
 export type PlannedSms = { loanId: string; phone: string; kind: SmsKind; dedupeKey: string; body: string };
 
@@ -62,4 +62,8 @@ export function receiptSms(p: { name: string; reference: string; amount: number;
 
 export function disbursedSms(p: { name: string; reference: string; net: number; firstAmount: number; firstDue: string }) {
   return `NANAM: Hi ${first(p.name)}, loan ${p.reference} is disbursed: ${ugx(p.net)} sent to you. First instalment ${ugx(p.firstAmount)} due ${day(p.firstDue)}. Pay at ${PORTAL}`;
+}
+
+export function refundSms(p: { name: string; reference: string; amount: number; msisdn: string; payoutRef: string }) {
+  return `NANAM: Hi ${first(p.name)}, we have refunded ${ugx(p.amount)} for loan ${p.reference} to ${p.msisdn.replace("+256", "0")}. Ref ${p.payoutRef.slice(0, 20)}. Thank you.`;
 }

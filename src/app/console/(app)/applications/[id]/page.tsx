@@ -8,15 +8,18 @@ import { requireStaff } from "@/lib/auth";
 import { creditPolicy } from "@/lib/lending";
 import { quote } from "@/lib/loan-math";
 import { can } from "@/lib/permissions";
-import { getProduct } from "@/lib/products";
+import { documentLabels, documentSlots, requiredDocuments } from "@/lib/documents-config";
+import { getProduct, type ProductSlug } from "@/lib/products";
 import { formatUGX } from "@/lib/utils";
 import {
   AddCollateralForm,
   CollateralActions,
   DecideForm,
   DisburseForm,
+  DocumentReview,
   NoteForm,
   RecommendForm,
+  StaffUploader,
   StartReviewButton,
   WithdrawForm,
 } from "./panels";
@@ -42,6 +45,7 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
       agent: { columns: { fullName: true, referralCode: true } },
       notes: { orderBy: desc(schema.notes.createdAt), with: { author: { columns: { name: true } } } },
       collateral: { orderBy: asc(schema.collateral.createdAt) },
+      documents: { orderBy: asc(schema.documents.createdAt), with: { reviewer: { columns: { name: true } } } },
       loan: { columns: { id: true, reference: true } },
     },
   });
@@ -60,6 +64,9 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
   const coverage = heldValue / amount;
   const hasHeld = app.collateral.some((c) => c.status === "held");
   const open = ["new", "reviewing", "recommended", "approved"].includes(app.status);
+  const required = requiredDocuments[app.product as ProductSlug] ?? [];
+  const docsVerified = required.filter((k) => app.documents.some((d) => d.kind === k && d.status === "verified")).length;
+  const docsMissing = required.filter((k) => !app.documents.some((d) => d.kind === k && d.status !== "rejected"));
 
   return (
     <>
@@ -149,6 +156,48 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
             )}
           </Card>
 
+          <Card
+            title="Documents"
+            actions={<Badge tone={docsMissing.length ? "progress" : "good"}>{docsVerified} of {required.length} required verified</Badge>}
+            padded={false}
+          >
+            {app.documents.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-muted">No documents uploaded yet.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {app.documents.map((d) => (
+                  <li key={d.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-medium text-forest-950">{documentLabels[d.kind]}</p>
+                      <p className="truncate text-xs text-muted">
+                        <a href={`/api/documents/${d.id}`} target="_blank" rel="noopener" className="text-forest-700 hover:underline">
+                          {d.fileName}
+                        </a>{" "}
+                        · {d.size < 1024 ? "<1" : Math.round(d.size / 1024)} KB · by {d.uploadedBy === "staff" ? "staff" : "client"} · {fmtDateTime(d.createdAt)}
+                      </p>
+                      {d.reviewNote && <p className="mt-1 text-xs text-ink/70">“{d.reviewNote}” · {d.reviewer?.name}</p>}
+                    </div>
+                    <div className="flex shrink-0 items-start gap-2">
+                      <Badge tone={d.status === "verified" ? "good" : d.status === "rejected" ? "bad" : "progress"}>{d.status}</Badge>
+                      {can(staff.role, "application.review") && d.status === "pending" && <DocumentReview id={d.id} />}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {can(staff.role, "application.review") && (
+              <div className="border-t border-line p-5">
+                <p className="mb-3 text-sm font-medium text-forest-950">Add a document {docsMissing.length > 0 && <span className="font-normal text-muted">· missing: {docsMissing.map((k) => documentLabels[k]).join(", ")}</span>}</p>
+                <StaffUploader
+                  applicationId={app.id}
+                  slots={documentSlots(app.product)}
+                  required={required}
+                  existing={app.documents.filter((d) => d.status !== "rejected").map((d) => ({ kind: d.kind, fileName: d.fileName }))}
+                />
+              </div>
+            )}
+          </Card>
+
           <Card title="Notes & history">
             {open && can(staff.role, "application.review") && <NoteForm applicationId={app.id} />}
             <ol className="mt-5 space-y-4">
@@ -195,6 +244,12 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
                     ? `Meets ${creditPolicy.minCollateralCover}× cover guide`
                     : `Guide: valuation at least ${creditPolicy.minCollateralCover}× the loan amount`
                 }
+              />
+              <Check
+                ok={docsVerified === required.length}
+                warnOnly={docsVerified < required.length && docsMissing.length === 0}
+                label={`${docsVerified} of ${required.length} required documents verified`}
+                hint={docsMissing.length ? `Missing: ${docsMissing.map((k) => documentLabels[k]).join(", ")}` : docsVerified === required.length ? "All required documents verified" : "Uploaded, awaiting verification"}
               />
               {app.product === "asset-finance" && <Check ok={false} warnOnly label="Confirm 50% down payment receipt" hint="Asset finance requires evidence of the client’s 50% contribution" />}
             </div>

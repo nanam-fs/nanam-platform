@@ -49,7 +49,7 @@ export async function saveApplication(data: z.infer<typeof applicationSchema>) {
     })
     .returning({ id: schema.applications.id });
   await audit(db, { actorId: null, action: "application.submitted", entity: "application", entityId: row.id, detail: { reference } });
-  return reference;
+  return { reference, id: row.id };
 }
 
 export async function saveMessage(data: z.infer<typeof contactSchema>) {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { count, eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import { Sidebar, type NavItem } from "@/components/console/sidebar";
 import { db, schema } from "@/db";
 import { requireStaff } from "@/lib/auth";
@@ -9,16 +9,24 @@ export const metadata: Metadata = { title: { default: "Console", template: "%s Â
 
 export default async function ConsoleLayout({ children }: LayoutProps<"/console">) {
   const staff = await requireStaff();
-  const [[newApps], [openMsgs], [pendingAgents]] = await Promise.all([
+  const refundWork: ("pending_approval" | "approved")[] = [
+    ...(can(staff.role, "refund.approve") ? (["pending_approval"] as const) : []),
+    ...(can(staff.role, "refund.pay") ? (["approved"] as const) : []),
+  ];
+  const [[newApps], [openMsgs], [pendingAgents], [refundsToAct]] = await Promise.all([
     db.select({ n: count() }).from(schema.applications).where(eq(schema.applications.status, "new")),
     db.select({ n: count() }).from(schema.messages).where(eq(schema.messages.status, "open")),
     db.select({ n: count() }).from(schema.agents).where(eq(schema.agents.status, "pending")),
+    refundWork.length
+      ? db.select({ n: count() }).from(schema.refunds).where(inArray(schema.refunds.status, refundWork))
+      : Promise.resolve([{ n: 0 }]),
   ]);
 
   const items: NavItem[] = [
     { href: "/console", label: "Overview", icon: "LayoutDashboard" },
     { href: "/console/applications", label: "Applications", icon: "FileStack", badge: newApps.n },
     { href: "/console/loans", label: "Loan book", icon: "Banknote" },
+    { href: "/console/refunds", label: "Refunds", icon: "Undo2", badge: refundsToAct.n },
     { href: "/console/collateral", label: "Collateral", icon: "ShieldCheck" },
     { href: "/console/agents", label: "Agents", icon: "Handshake", badge: pendingAgents.n },
     { href: "/console/messages", label: "Messages", icon: "Inbox", badge: openMsgs.n },

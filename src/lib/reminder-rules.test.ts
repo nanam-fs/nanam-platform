@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { disbursedSms, planReminders, receiptSms } from "./reminder-rules";
+import { disbursedSms, planReminders, receiptSms, refundSms } from "./reminder-rules";
 
 const loan = (dues: [string, number, number][]) => ({
   id: "L1",
@@ -40,6 +40,7 @@ describe("message templates", () => {
     ),
     receiptSms({ ...long, amount: 100_000_000, balance: 99_999_999, closed: false }),
     receiptSms({ ...long, amount: 100_000_000, balance: 0, closed: true }),
+    refundSms({ ...long, amount: 99_999_999, msisdn: "+256772111999", payoutRef: "MP2610161234567890ABCDEFGH" }),
     disbursedSms({ ...long, net: 98_000_000, firstAmount: 18_888_888, firstDue: "2026-11-06" }),
   ];
   it("fit in a single 160-character plain-text SMS", () => {

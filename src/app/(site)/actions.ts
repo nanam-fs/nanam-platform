@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { saveAgent, saveApplication, saveMessage } from "@/lib/inbox";
 import { applicationSchema, contactSchema, partnerSchema, type FormState } from "@/lib/schemas";
+import { issueUploadToken } from "@/lib/upload-token";
 
 function fromForm(formData: FormData) {
   const values: Record<string, string> = {};
@@ -13,7 +14,7 @@ function fromForm(formData: FormData) {
 async function handle<T extends z.ZodType>(
   schema: T,
   formData: FormData,
-  save: (data: z.infer<T>) => Promise<string>,
+  save: (data: z.infer<T>) => Promise<string | Pick<FormState, "reference" | "upload">>,
   success: string,
 ): Promise<FormState> {
   const values = fromForm(formData);
@@ -30,7 +31,8 @@ async function handle<T extends z.ZodType>(
     };
   }
   try {
-    return { ok: true, reference: await save(parsed.data), message: success };
+    const saved = await save(parsed.data);
+    return { ok: true, message: success, ...(typeof saved === "string" ? { reference: saved } : saved) };
   } catch (err) {
     console.error("[nanam] failed to save submission", err);
     return { ok: false, message: "Something went wrong on our side. Please try again, or call us.", values };
@@ -38,7 +40,16 @@ async function handle<T extends z.ZodType>(
 }
 
 export async function submitApplication(_: FormState, formData: FormData) {
-  return handle(applicationSchema, formData, saveApplication, "A loan officer will contact you within 24 hours.");
+  return handle(
+    applicationSchema,
+    formData,
+    async (data) => {
+      const { reference, id } = await saveApplication(data);
+      const token = issueUploadToken(id);
+      return { reference, upload: token ? { applicationId: id, token, product: data.product } : undefined };
+    },
+    "A loan officer will contact you within 24 hours.",
+  );
 }
 
 export async function submitContact(_: FormState, formData: FormData) {

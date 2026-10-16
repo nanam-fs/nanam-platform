@@ -1,6 +1,6 @@
 import "server-only";
 import { and, desc, eq, gt, inArray } from "drizzle-orm";
-import { db, schema } from "@/db";
+import { db, schema, type Tx } from "@/db";
 import type { PaymentRequest } from "@/db/schema";
 import { audit } from "./audit";
 import { settlementQuote } from "./lending";
@@ -169,15 +169,24 @@ export async function syncPayment(id: string): Promise<PaymentRequest | undefine
       });
       await tx.update(schema.paymentRequests).set({ repaymentId: result.repaymentId, excess: result.excess }).where(eq(schema.paymentRequests.id, id));
       postedRepayment = result.repaymentId;
+      if (result.excess > 0) await openRefund(tx, claimed, result.excess, "Paid more than was owed");
     } catch (err) {
       if (!(err instanceof RepaymentError)) throw err;
       // Money arrived but can't be applied (e.g. the loan was already settled): hold it for refund.
       await tx.update(schema.paymentRequests).set({ excess: claimed.amount, failureReason: err.message }).where(eq(schema.paymentRequests.id, id));
+      await openRefund(tx, claimed, claimed.amount, err.message);
       await audit(tx, { actorId: null, action: "payment.refund_due", entity: "loan", entityId: claimed.loanId, detail: { request: id, amount: claimed.amount, reason: err.message } });
     }
   });
   if (postedRepayment) await notifyRepayment(postedRepayment).catch((e) => console.error("[sms] receipt failed", e));
   return db.query.paymentRequests.findFirst({ where: eq(schema.paymentRequests.id, id) });
+}
+
+async function openRefund(tx: Tx, req: PaymentRequest, amount: number, reason: string) {
+  await tx
+    .insert(schema.refunds)
+    .values({ paymentRequestId: req.id, loanId: req.loanId, amount, payeeMsisdn: req.payerMsisdn, network: req.network, reason })
+    .onConflictDoNothing({ target: schema.refunds.paymentRequestId });
 }
 
 /** Re-checks every unresolved request (run on a schedule as a safety net for missed callbacks). */

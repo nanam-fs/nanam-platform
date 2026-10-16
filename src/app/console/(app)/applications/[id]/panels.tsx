@@ -1,6 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { ActionButton, ActionForm, Submit } from "@/components/console/action-form";
+import { DocumentUploader } from "@/components/document-uploader";
+import type { DocumentKind } from "@/db/schema";
 import { CField, CInput, CSelect, CTextarea } from "@/components/console/ui";
 import {
   addCollateral,
@@ -10,6 +13,7 @@ import {
   markCollateralHeld,
   recommend,
   releaseCollateral,
+  reviewDocument,
   startReview,
   withdraw,
 } from "../../../actions";
@@ -171,4 +175,48 @@ export function CollateralActions({ id, status, canManage, canRelease }: { id: s
       </ActionButton>
     );
   return null;
+}
+
+export function StaffUploader({
+  applicationId,
+  slots,
+  required,
+  existing,
+}: {
+  applicationId: string;
+  slots: DocumentKind[];
+  required: DocumentKind[];
+  existing: { kind: DocumentKind; fileName: string }[];
+}) {
+  const router = useRouter();
+  // Re-key on the server's list so a refresh after upload replaces local state.
+  return (
+    <DocumentUploader
+      key={existing.length}
+      applicationId={applicationId}
+      slots={slots}
+      required={required}
+      existing={existing}
+      variant="console"
+      onUploaded={() => router.refresh()}
+    />
+  );
+}
+
+export function DocumentReview({ id }: { id: string }) {
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      <ActionButton variant="secondary" action={() => reviewDocument(id, "verified", { ok: false }, new FormData())}>
+        Verify
+      </ActionButton>
+      <ActionForm action={reviewDocument.bind(null, id, "rejected")} resetOnSuccess={false} className="flex gap-1.5">
+        {(_, pending) => (
+          <>
+            <CInput name="note" placeholder="Reason to reject" aria-label="Reason to reject" className="h-8 w-40 text-xs" />
+            <Submit pending={pending} variant="danger">Reject</Submit>
+          </>
+        )}
+      </ActionForm>
+    </div>
+  );
 }

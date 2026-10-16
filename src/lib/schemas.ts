@@ -62,6 +62,8 @@ export const partnerSchema = z.object({
 export type FormState = {
   ok: boolean;
   reference?: string;
+  /** Set after an application is saved, so the applicant can attach documents straight away. */
+  upload?: { applicationId: string; token: string; product: string };
   message?: string;
   errors?: Record<string, string[] | undefined>;
   values?: Record<string, string>;

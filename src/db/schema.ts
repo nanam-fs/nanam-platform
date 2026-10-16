@@ -136,6 +136,45 @@ export const notes = pgTable(
   (t) => [index("notes_application_idx").on(t.applicationId)],
 );
 
+/* ───────────── Application documents ───────────── */
+
+export const documentKind = pgEnum("document_kind", [
+  "national_id",
+  "passport_photo",
+  "statement",
+  "logbook",
+  "land_title",
+  "contract",
+  "trading_licence",
+  "sale_agreement",
+  "other",
+]);
+export const documentStatus = pgEnum("document_status", ["pending", "verified", "rejected"]);
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: id(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id),
+    kind: documentKind("kind").notNull(),
+    fileName: text("file_name").notNull(),
+    contentType: text("content_type").notNull(),
+    size: integer("size").notNull(),
+    // Private storage key; never exposed to the browser.
+    storageKey: text("storage_key").notNull().unique(),
+    uploadedBy: text("uploaded_by", { enum: ["applicant", "staff"] }).notNull(),
+    staffId: uuid("staff_id").references(() => staff.id),
+    status: documentStatus("status").notNull().default("pending"),
+    reviewNote: text("review_note"),
+    reviewedBy: uuid("reviewed_by").references(() => staff.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("documents_application_idx").on(t.applicationId)],
+);
+
 /* ───────────── Collateral register ───────────── */
 
 export const collateralStatus = pgEnum("collateral_status", ["pending", "held", "released"]);
@@ -305,9 +344,45 @@ export const paymentRequests = pgTable(
   (t) => [index("payment_requests_loan_idx").on(t.loanId), index("payment_requests_status_idx").on(t.status)],
 );
 
+/* ───────────── Refunds ───────────── */
+
+export const refundStatus = pgEnum("refund_status", ["pending_approval", "approved", "paid", "rejected"]);
+
+/**
+ * Money received that NANAM must return (e.g. a Mobile Money overpayment).
+ * Opened automatically, approved by a manager, paid out by finance.
+ */
+export const refunds = pgTable(
+  "refunds",
+  {
+    id: id(),
+    paymentRequestId: uuid("payment_request_id")
+      .notNull()
+      .unique()
+      .references(() => paymentRequests.id),
+    loanId: uuid("loan_id")
+      .notNull()
+      .references(() => loans.id),
+    amount: ugx("amount").notNull(),
+    payeeMsisdn: text("payee_msisdn").notNull(),
+    network: momoNetwork("network").notNull(),
+    reason: text("reason").notNull(),
+    status: refundStatus("status").notNull().default("pending_approval"),
+    decidedBy: uuid("decided_by").references(() => staff.id),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decisionNote: text("decision_note"),
+    paidBy: uuid("paid_by").references(() => staff.id),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    payoutMethod: paymentMethod("payout_method"),
+    payoutRef: text("payout_ref"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("refunds_status_idx").on(t.status), index("refunds_loan_idx").on(t.loanId)],
+);
+
 /* ───────────── Customer SMS ───────────── */
 
-export const smsKind = pgEnum("sms_kind", ["due_soon", "due_today", "overdue_1", "overdue_7", "overdue_30", "receipt", "disbursed"]);
+export const smsKind = pgEnum("sms_kind", ["due_soon", "due_today", "overdue_1", "overdue_7", "overdue_30", "receipt", "disbursed", "refund"]);
 
 /** Every SMS sent to a borrower. `dedupeKey` makes each message send at most once. */
 export const smsMessages = pgTable(
@@ -364,7 +439,13 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
   assignee: one(staff, { fields: [applications.assignedTo], references: [staff.id] }),
   notes: many(notes),
   collateral: many(collateral),
+  documents: many(documents),
   loan: one(loans, { fields: [applications.id], references: [loans.applicationId] }),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  application: one(applications, { fields: [documents.applicationId], references: [applications.id] }),
+  reviewer: one(staff, { fields: [documents.reviewedBy], references: [staff.id] }),
 }));
 
 export const notesRelations = relations(notes, ({ one }) => ({
@@ -382,11 +463,19 @@ export const loansRelations = relations(loans, ({ one, many }) => ({
   repayments: many(repayments),
   paymentRequests: many(paymentRequests),
   smsMessages: many(smsMessages),
+  refunds: many(refunds),
   commission: one(commissions, { fields: [loans.id], references: [commissions.loanId] }),
 }));
 
 export const installmentsRelations = relations(installments, ({ one }) => ({
   loan: one(loans, { fields: [installments.loanId], references: [loans.id] }),
+}));
+
+export const refundsRelations = relations(refunds, ({ one }) => ({
+  loan: one(loans, { fields: [refunds.loanId], references: [loans.id] }),
+  paymentRequest: one(paymentRequests, { fields: [refunds.paymentRequestId], references: [paymentRequests.id] }),
+  decider: one(staff, { fields: [refunds.decidedBy], references: [staff.id], relationName: "refundDecider" }),
+  payer: one(staff, { fields: [refunds.paidBy], references: [staff.id], relationName: "refundPayer" }),
 }));
 
 export const smsMessagesRelations = relations(smsMessages, ({ one }) => ({
@@ -419,3 +508,4 @@ export type ApplicationStatus = Application["status"];
 export type Loan = typeof loans.$inferSelect;
 export type Installment = typeof installments.$inferSelect;
 export type PaymentRequest = typeof paymentRequests.$inferSelect;
+export type DocumentKind = (typeof documentKind.enumValues)[number];

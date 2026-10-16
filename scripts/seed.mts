@@ -90,6 +90,8 @@ type Seed = {
   collateral?: { description: string; identifier: string; valuation: number };
   stage: "new" | "reviewing" | "recommended" | "approved" | "declined" | "loan";
   disbursedDaysAgo?: number; paidInstalments?: number; partial?: number; viaAgent?: boolean; createdDaysAgo: number;
+  /** Paid instalment 1 early by Mobile Money, overpaying by this much (opens a refund case). */
+  overpaid?: number;
 };
 
 const seeds: Seed[] = [
@@ -104,7 +106,7 @@ const seeds: Seed[] = [
   { name: "Samuel Okot", phone: "+256703555444", nin: "CM83091234CDEF", district: "Kampala", product: "business", amount: 20_000_000, months: 4, purpose: "Restaurant equipment", income: 11_000_000, security: "land-title", collateral: { description: "Land, Kira municipality", identifier: "Block 105 Plot 77", valuation: 45_000_000 }, stage: "loan", disbursedDaysAgo: 75, paidInstalments: 1, partial: 2_000_000, createdDaysAgo: 80 },
   { name: "Harriet Atim", phone: "+256781222333", nin: "CF89021234GHIJ", district: "Mukono", product: "contract-finance", amount: 30_000_000, months: 3, purpose: "School supplies tender", income: 14_000_000, security: "contract", collateral: { description: "Isuzu Elf truck 2014", identifier: "UBD 301F", valuation: 55_000_000 }, stage: "loan", disbursedDaysAgo: 130, paidInstalments: 0, createdDaysAgo: 135 },
   { name: "Robert Sserwadda", phone: "+256752777888", nin: "CM80011234KLMN", district: "Wakiso", product: "logbook", amount: 5_000_000, months: 2, purpose: "Emergency medical costs", income: 3_500_000, security: "logbook", collateral: { description: "Toyota Ipsum 2006", identifier: "UAR 554C", valuation: 11_000_000 }, stage: "loan", disbursedDaysAgo: 95, paidInstalments: 2, createdDaysAgo: 98 },
-  { name: "Gloria Nambi", phone: "+256709101112", nin: "CF94061234OPQR", district: "Kampala", product: "business", amount: 18_000_000, months: 6, purpose: "Salon expansion", income: 8_500_000, security: "logbook", collateral: { description: "Subaru Forester 2011", identifier: "UBB 220M", valuation: 30_000_000 }, stage: "loan", disbursedDaysAgo: 12, paidInstalments: 0, createdDaysAgo: 15 },
+  { name: "Gloria Nambi", phone: "+256709101112", nin: "CF94061234OPQR", district: "Kampala", product: "business", amount: 18_000_000, months: 6, purpose: "Salon expansion", income: 8_500_000, security: "logbook", collateral: { description: "Subaru Forester 2011", identifier: "UBB 220M", valuation: 30_000_000 }, stage: "loan", disbursedDaysAgo: 12, paidInstalments: 0, createdDaysAgo: 15, overpaid: 150_000 },
 ];
 
 for (const d of seeds) {
@@ -158,7 +160,7 @@ for (const d of seeds) {
     .values(buildSchedule(d.amount, d.months, rate, start).map((r) => ({ ...r, loanId: loan.id })))
     .returning();
 
-  const pay = async (amount: number, when: Date) => {
+  const pay = async (amount: number, when: Date, reference = `MP${randomBytes(4).toString("hex").toUpperCase()}`) => {
     const open = rows.filter((r) => r.amountPaid < r.amountDue);
     const { updates } = allocate(amount, open);
     for (const u of updates) {
@@ -166,13 +168,27 @@ for (const d of seeds) {
       r.amountPaid += u.add;
       await db.update(s.installments).set({ amountPaid: r.amountPaid, paidAt: u.settles ? when : null }).where(eq(s.installments.id, u.id));
     }
-    await db.insert(s.repayments).values({ loanId: loan.id, amount, method: "mobile_money", reference: `MP${randomBytes(4).toString("hex").toUpperCase()}`, receivedAt: when, recordedBy: staffIds.finance });
+    const [rep] = await db.insert(s.repayments).values({ loanId: loan.id, amount, method: "mobile_money", reference, receivedAt: when, recordedBy: staffIds.finance }).returning({ id: s.repayments.id });
+    return rep.id;
   };
   for (let i = 0; i < (d.paidInstalments ?? 0); i++) {
     const due = new Date(`${rows[i].dueDate}T09:00:00Z`);
     await pay(rows[i].amountDue, due.getTime() > Date.now() ? new Date() : due);
   }
   if (d.partial) await pay(d.partial, daysAgo(10));
+  if (d.overpaid) {
+    const txn = `MP${randomBytes(4).toString("hex").toUpperCase()}`;
+    const repaymentId = await pay(rows[0].amountDue, daysAgo(2), txn);
+    const [req] = await db
+      .insert(s.paymentRequests)
+      .values({
+        loanId: loan.id, customerPhone: d.phone, payerMsisdn: d.phone, network: "airtel", amount: rows[0].amountDue + d.overpaid,
+        purpose: "custom", status: "successful", provider: "airtel-test", providerRef: `TEST-AIRTEL-${randomBytes(6).toString("hex")}`,
+        providerTxnId: txn, excess: d.overpaid, repaymentId, completedAt: daysAgo(2),
+      })
+      .returning({ id: s.paymentRequests.id });
+    await db.insert(s.refunds).values({ paymentRequestId: req.id, loanId: loan.id, amount: d.overpaid, payeeMsisdn: d.phone, network: "airtel", reason: "Paid more than was owed" });
+  }
   if (d.viaAgent) await db.insert(s.commissions).values({ agentId: agent.id, loanId: loan.id, amount: Math.round(d.amount * 0.01) });
 }
 

@@ -12,7 +12,7 @@ import type { ApplicationStatus } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { authorize, createSession, currentSessionId, destroySession, getStaff, loginThrottle, PermissionError } from "@/lib/auth";
 import { buildSchedule, canTransition } from "@/lib/lending";
-import { notifyDisbursement, notifyRepayment, runReminders } from "@/lib/notifications";
+import { notifyDisbursement, notifyRefund, notifyRepayment, runReminders } from "@/lib/notifications";
 import { postRepayment, RepaymentError } from "@/lib/repayments";
 import { hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/password";
 import type { Permission } from "@/lib/permissions";
@@ -171,6 +171,25 @@ export async function addNote(id: string, _: ActionResult, fd: FormData) {
     return "Note added.";
   });
   revalidatePath(`/console/applications/${id}`);
+  return r;
+}
+
+/* ───────────── Documents ───────────── */
+
+export async function reviewDocument(id: string, status: "verified" | "rejected", _: ActionResult, fd: FormData) {
+  const r = await run("application.review", async (actor) => {
+    const note = String(fd.get("note") ?? "").trim();
+    if (status === "rejected" && note.length < 3) throw new ActionError("Say why, e.g. blurry photo or expired ID.");
+    const [doc] = await db
+      .update(schema.documents)
+      .set({ status, reviewNote: note || null, reviewedBy: actor.id, reviewedAt: new Date() })
+      .where(eq(schema.documents.id, id))
+      .returning({ applicationId: schema.documents.applicationId, kind: schema.documents.kind });
+    if (!doc) throw new ActionError("Document not found.");
+    await audit(db, { actorId: actor.id, action: `document.${status}`, entity: "application", entityId: doc.applicationId, detail: { document: id, kind: doc.kind, note } });
+    return status === "verified" ? "Marked as verified." : "Marked as rejected. Ask the client for a new copy.";
+  });
+  revalidatePath("/console", "layout");
   return r;
 }
 
@@ -369,6 +388,52 @@ export async function markCommissionPaid(id: string) {
     return "Commission marked as paid.";
   });
   revalidatePath("/console/agents");
+  return r;
+}
+
+/* ───────────── Refunds ───────────── */
+
+export async function decideRefund(id: string, _: ActionResult, fd: FormData) {
+  const r = await run("refund.approve", async (actor) => {
+    const data = z.object({ decision: z.enum(["approved", "rejected"]), note: z.string().trim().min(5, "Add a short reason") }).parse(form(fd));
+    const [row] = await db
+      .update(schema.refunds)
+      .set({ status: data.decision, decidedBy: actor.id, decidedAt: new Date(), decisionNote: data.note })
+      .where(and(eq(schema.refunds.id, id), eq(schema.refunds.status, "pending_approval")))
+      .returning({ amount: schema.refunds.amount });
+    if (!row) throw new ActionError("This refund has already been decided. Refresh to see the latest state.");
+    await audit(db, { actorId: actor.id, action: `refund.${data.decision}`, entity: "refund", entityId: id, detail: { amount: row.amount, note: data.note } });
+    return data.decision === "approved" ? "Approved. Finance can now pay it out." : "Refund rejected.";
+  });
+  revalidatePath("/console", "layout");
+  // The refund leaves the current tab, so carry the confirmation to the tab it moved to.
+  if (r.ok) redirect(`/console/refunds?status=${String(fd.get("decision")) === "approved" ? "approved" : "rejected"}&notice=${encodeURIComponent(r.message ?? "")}`);
+  return r;
+}
+
+export async function payRefund(id: string, _: ActionResult, fd: FormData) {
+  const r = await run("refund.pay", async (actor) => {
+    const data = z
+      .object({
+        method: z.enum(["mobile_money", "bank", "cash"]),
+        reference: z.string().trim().min(3, "Enter the payout transaction reference"),
+      })
+      .parse(form(fd));
+    const refund = await db.query.refunds.findFirst({ where: eq(schema.refunds.id, id) });
+    if (!refund) throw new ActionError("Refund not found.");
+    if (refund.decidedBy === actor.id) throw new ActionError("You approved this refund, so someone else must pay it out.");
+    const [row] = await db
+      .update(schema.refunds)
+      .set({ status: "paid", paidBy: actor.id, paidAt: new Date(), payoutMethod: data.method, payoutRef: data.reference })
+      .where(and(eq(schema.refunds.id, id), eq(schema.refunds.status, "approved")))
+      .returning({ amount: schema.refunds.amount });
+    if (!row) throw new ActionError("Only approved refunds can be paid.");
+    await audit(db, { actorId: actor.id, action: "refund.paid", entity: "refund", entityId: id, detail: { amount: row.amount, ...data } });
+    after(() => notifyRefund(id).catch((e) => console.error("[sms] refund notice failed", e)));
+    return "Refund recorded as paid. The client has been notified by SMS.";
+  });
+  revalidatePath("/console", "layout");
+  if (r.ok) redirect(`/console/refunds?status=paid&notice=${encodeURIComponent(r.message ?? "")}`);
   return r;
 }
 

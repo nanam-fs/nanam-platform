@@ -39,6 +39,8 @@ Stop the dev server before running any `db:*` command. The local database is a s
 | `AT_USERNAME`, `AT_API_KEY`, `AT_SENDER_ID` (optional) | Africa's Talking SMS for portal sign-in codes |
 | `MTN_MOMO_BASE_URL`, `MTN_MOMO_SUBSCRIPTION_KEY`, `MTN_MOMO_API_USER`, `MTN_MOMO_API_KEY`, `MTN_MOMO_TARGET_ENV` (`mtnuganda`) | MTN MoMo Collections |
 | `AIRTEL_BASE_URL`, `AIRTEL_CLIENT_ID`, `AIRTEL_CLIENT_SECRET` | Airtel Money Collections |
+| `BLOB_READ_WRITE_TOKEN` or a connected **private** Blob store (`BLOB_STORE_ID`) | Client documents (`vercel blob create-store nanam-docs --access private`) |
+| `UPLOAD_TOKEN_SECRET` (32+ random chars) | Signs the 24-hour links that let applicants upload documents right after applying |
 | `CRON_SECRET` | Protects the cron routes (`vercel.ts`: payment sweep every 15 min, reminders daily 09:00 EAT) |
 
 Without SMS credentials the portal can't send codes; without a network's Mobile Money credentials, that network is hidden. Nothing silently falls back to test mode in production.
@@ -77,6 +79,21 @@ Register callback URLs with the providers: `https://nanam.ug/api/payments/mtn/ca
 
 **Payment safety:** money is posted only after the provider confirms it. Callbacks only identify which payment to re-check, so the outcome is always re-queried from the provider. Posting is idempotent (one transaction claims the request and posts it). Duplicate transaction IDs are rejected. Overpayments are posted up to the amount owed and the excess is flagged for refund in the console. A sweep re-checks anything unresolved.
 
+## Refunds — `/console/refunds`
+
+A Mobile Money payment that exceeds what's owed (or arrives after a loan is settled) automatically opens a refund case.
+**Manager approves or rejects** with a reason → **finance pays it out** and records the transaction reference → the client gets an SMS.
+The approver can never be the one who pays it. Payout is recorded manually for now; automating it via MTN/Airtel disbursement APIs is a later step.
+
+## Client documents
+
+Applicants upload ID, passport photo, statements and collateral documents on the confirmation screen right after applying (24-hour signed link), or any time from the portal. Staff can also upload scans.
+Officers verify or reject each document in the console (with a reason the client sees in the portal), and the credit assessment shows how many required documents are verified.
+
+- Files are checked by their actual bytes (JPEG, PNG, WebP, PDF only), up to 4 MB; phone photos are compressed in the browser first.
+- Stored privately (Vercel Blob private store; `.data/uploads` in test mode) and served only through `/api/documents/[id]` to staff or the owning customer. Upload links can't read files.
+- Every staff view of a document is written to the audit log.
+
 ## SMS to clients
 
 | Message | When |
@@ -104,6 +121,7 @@ Reminders run daily at 09:00 Kampala time (and on demand from **Console → SMS 
 | `src/lib/repayments.ts` | The single path for posting money to a loan (staff and Mobile Money) |
 | `src/lib/payments.ts` · `momo.ts` · `sms.ts` | Payment requests and reconciliation, MTN/Airtel clients, SMS |
 | `src/lib/customer-auth.ts` | Portal OTP sign-in and sessions |
+| `src/lib/documents-config.ts` · `storage.ts` · `upload-token.ts` | Required documents per product, file checks · private storage · applicant upload links |
 | `src/lib/reminder-rules.ts` · `notifications.ts` | Which SMS to send when (pure, tested) · delivery with dedupe and retries |
 
 ## Assumptions to confirm with NANAM
@@ -119,11 +137,11 @@ Reminders run daily at 09:00 Kampala time (and on demand from **Console → SMS 
 | Early settlement | Overdue + current period in full; future interest waived | `settlementQuote` in `src/lib/lending.ts` |
 | Agent commission | 1% of principal, paid on disbursement | `agents.commission_rate` (per agent) |
 | Penalties on late payment | None charged (not modelled) | — |
+| Required documents | Per product, mirroring the website's requirements | `requiredDocuments` in `src/lib/documents-config.ts` |
 | Reminder schedule | 3 days before, due day, 1 / 7 / 30 days overdue | `planReminders` in `src/lib/reminder-rules.ts` |
 
 ## Roadmap
 
-- Refund workflow for Mobile Money overpayments (currently flagged in the console for manual refund).
-- Document uploads on applications (ID, statements, logbook scans) to private blob storage.
+- Automated refund payouts via MTN/Airtel disbursement APIs.
 - Agent self-service dashboard (referrals, commission statements).
 - Privacy policy and loan terms pages (legal to supply); UMRA licence number in the footer.

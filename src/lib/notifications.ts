@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, lt } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { planReminders, receiptSms, disbursedSms, type PlannedSms } from "./reminder-rules";
+import { planReminders, receiptSms, disbursedSms, refundSms, type PlannedSms } from "./reminder-rules";
 import { today } from "./queries";
 import { sendSms } from "./sms";
 
@@ -104,5 +104,20 @@ export async function notifyDisbursement(loanId: string) {
     kind: "disbursed",
     dedupeKey: `disbursed:${loanId}`,
     body: disbursedSms({ name: loan.borrowerName, reference: loan.reference, net: loan.netDisbursed, firstAmount: first.amountDue, firstDue: first.dueDate }),
+  });
+}
+
+export async function notifyRefund(refundId: string) {
+  const r = await db.query.refunds.findFirst({
+    where: eq(schema.refunds.id, refundId),
+    with: { loan: { columns: { reference: true, borrowerName: true, borrowerPhone: true } } },
+  });
+  if (!r || r.status !== "paid" || !r.payoutRef) return;
+  await deliver({
+    loanId: r.loanId,
+    phone: r.loan.borrowerPhone,
+    kind: "refund",
+    dedupeKey: `refund:${r.id}`,
+    body: refundSms({ name: r.loan.borrowerName, reference: r.loan.reference, amount: r.amount, msisdn: r.payeeMsisdn, payoutRef: r.payoutRef }),
   });
 }

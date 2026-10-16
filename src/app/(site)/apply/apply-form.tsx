@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Lock } from "lucide-react";
+import { DocumentUploader } from "@/components/document-uploader";
 import { Choice, Field, Honeypot, Input, Select, Textarea } from "@/components/form";
+import { documentSlots, requiredDocuments } from "@/lib/documents-config";
 import { Button } from "@/components/ui";
 import { quote } from "@/lib/loan-math";
 import { products, type ProductSlug } from "@/lib/products";
@@ -73,16 +75,31 @@ export function ApplyForm({
           <span className="text-xs uppercase tracking-[0.16em] text-muted">Your reference</span>
           <span className="mt-1 font-mono text-xl font-medium text-forest-950">{state.reference}</span>
         </p>
-        <div className="mx-auto mt-10 max-w-md text-left">
-          <p className="font-medium text-forest-950">While you wait, get these ready:</p>
-          <ul className="mt-3 space-y-2 text-sm text-muted">
-            {products.find((p) => p.slug === product)?.requirements.map((r) => (
-              <li key={r} className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-lime-600" /> {r}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {state.upload ? (
+          <div className="mx-auto mt-10 max-w-xl text-left">
+            <p className="font-display text-2xl text-forest-950">Speed up your approval</p>
+            <p className="mt-1 mb-5 text-sm text-muted">
+              Upload your documents now. Photos from your phone are fine. You can also add them later by signing in at nanam.ug/portal.
+            </p>
+            <DocumentUploader
+              applicationId={state.upload.applicationId}
+              token={state.upload.token}
+              slots={documentSlots(state.upload.product)}
+              required={requiredDocuments[state.upload.product as ProductSlug]}
+            />
+          </div>
+        ) : (
+          <div className="mx-auto mt-10 max-w-md text-left">
+            <p className="font-medium text-forest-950">While you wait, get these ready:</p>
+            <ul className="mt-3 space-y-2 text-sm text-muted">
+              {products.find((p) => p.slug === product)?.requirements.map((r) => (
+                <li key={r} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-lime-600" /> {r}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <Link href="/" className="mt-10 inline-block text-sm font-medium text-forest-700 underline-offset-4 hover:underline">
           Back to home
         </Link>

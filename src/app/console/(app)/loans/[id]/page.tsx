@@ -64,8 +64,8 @@ export default async function LoanDetail({ params }: PageProps<"/console/loans/[
 
       {refundDue.length > 0 && (
         <p role="alert" className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <strong>Refund due:</strong> {refundDue.map((p) => `${formatUGX(p.excess)} from ${p.payerMsisdn} (${p.providerTxnId ?? p.providerRef})`).join("; ")}.
-          The client paid more than was owed via Mobile Money.
+          <strong>Refund case:</strong> {refundDue.map((p) => `${formatUGX(p.excess)} to ${p.payerMsisdn}`).join("; ")}. The client paid more than was owed.{" "}
+          <Link href="/console/refunds" className="font-medium underline">Open refunds</Link>
         </p>
       )}
 
