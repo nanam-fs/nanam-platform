@@ -21,6 +21,7 @@ const matrix = {
   "refund.pay": ["finance", "admin"],
   "message.manage": ["officer", "manager", "admin"],
   "reminders.run": ["finance", "manager", "admin"],
+  "payments.lab": ["finance", "admin"],
   "audit.view": ["manager", "admin"],
   "staff.manage": ["admin"],
 } as const satisfies Record<string, readonly Role[]>;

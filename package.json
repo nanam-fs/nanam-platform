@@ -12,7 +12,8 @@
     "db:seed": "tsx scripts/seed.mts",
     "db:reset": "tsx scripts/reset.mts && npm run db:migrate && npm run db:seed",
     "test": "tsx --test src/**/*.test.ts",
-    "db:staff-passwords": "tsx scripts/staff-passwords.mts"
+    "db:staff-passwords": "tsx scripts/staff-passwords.mts",
+    "momo:mtn-sandbox": "tsx scripts/mtn-sandbox.mts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.10",
@@ -20,6 +21,7 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.58.0",
+    "motion": "^14.3.0",
     "next": "16.4.2",
     "postgres": "^3.4.9",
     "react": "19.3.0",

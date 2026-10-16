@@ -4,58 +4,88 @@ import { detectNetwork, type Network } from "./phone";
 import { testMode } from "./test-mode";
 
 export { detectNetwork, type Network };
-export type ProviderStatus = { status: "pending" | "successful" | "failed"; transactionId?: string; reason?: string };
+
+export type ProviderStatus = {
+  status: "pending" | "successful" | "failed";
+  transactionId?: string;
+  reason?: string;
+  /** Provider's raw response, for the payments lab and troubleshooting. Never shown to customers. */
+  raw?: unknown;
+};
 
 export interface MomoProvider {
   name: string;
+  /** "live" | "sandbox" | "simulator" */
+  mode: "live" | "sandbox" | "simulator";
   /** Prompts the payer's phone. Returns our provider reference used for status checks. */
-  requestPayment(p: { amount: number; msisdn: string; externalId: string; note: string }): Promise<{ providerRef: string }>;
+  requestPayment(p: { amount: number; msisdn: string; externalId: string; note: string }): Promise<{ providerRef: string; raw?: unknown }>;
   getStatus(r: { providerRef: string; createdAt: Date; payerMsisdn: string }): Promise<ProviderStatus>;
+  /** Checks credentials by fetching a fresh access token. */
+  ping(): Promise<{ ok: boolean; detail: string }>;
 }
 
-/* ───────────── Token cache ───────────── */
+/**
+ * Normalises a payer number. Ugandan numbers become 2567XXXXXXXX; other international numbers
+ * (such as MTN's sandbox test MSISDNs 46733123450…) pass through as digits.
+ */
+export function toMsisdn(raw: string) {
+  const d = raw.replace(/\D/g, "");
+  if (/^(256|0)?7\d{8}$/.test(d)) return `256${d.slice(-9)}`;
+  return d;
+}
 
 const tokens = new Map<string, { token: string; until: number }>();
 async function cachedToken(key: string, fetcher: () => Promise<{ token: string; ttl: number }>) {
   const hit = tokens.get(key);
   if (hit && hit.until > Date.now()) return hit.token;
   const { token, ttl } = await fetcher();
-  tokens.set(key, { token, until: Date.now() + (ttl - 60) * 1000 });
+  tokens.set(key, { token, until: Date.now() + Math.max(60, ttl - 60) * 1000 });
   return token;
 }
 
-/* ───────────── MTN MoMo Collections (request to pay) ───────────── */
+async function readJson(res: Response) {
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return text.slice(0, 500);
+  }
+}
 
+/* ───────────── MTN MoMo Collections (request to pay) ─────────────
+ * momodeveloper.mtn.com: sandbox https://sandbox.momodeveloper.mtn.com (target env "sandbox", currency EUR);
+ * production https://proxy.momoapi.mtn.com (target env "mtnuganda", currency UGX).
+ */
 function mtn(): MomoProvider | null {
-  const base = process.env.MTN_MOMO_BASE_URL;
   const subKey = process.env.MTN_MOMO_SUBSCRIPTION_KEY;
   const user = process.env.MTN_MOMO_API_USER;
   const key = process.env.MTN_MOMO_API_KEY;
-  if (!base || !subKey || !user || !key) return null;
+  if (!subKey || !user || !key) return null;
   const env = process.env.MTN_MOMO_TARGET_ENV ?? "sandbox";
-  const currency = process.env.MTN_MOMO_CURRENCY ?? (env === "sandbox" ? "EUR" : "UGX");
+  const sandbox = env === "sandbox";
+  const base = (process.env.MTN_MOMO_BASE_URL ?? (sandbox ? "https://sandbox.momodeveloper.mtn.com" : "https://proxy.momoapi.mtn.com")).replace(/\/$/, "");
+  const currency = process.env.MTN_MOMO_CURRENCY ?? (sandbox ? "EUR" : "UGX");
+  const cacheKey = `mtn:${base}:${user}`;
 
   const token = () =>
-    cachedToken("mtn", async () => {
+    cachedToken(cacheKey, async () => {
       const res = await fetch(`${base}/collection/token/`, {
         method: "POST",
         headers: { Authorization: `Basic ${Buffer.from(`${user}:${key}`).toString("base64")}`, "Ocp-Apim-Subscription-Key": subKey },
       });
-      if (!res.ok) throw new Error(`MTN token failed (${res.status})`);
-      const j = (await res.json()) as { access_token: string; expires_in: number };
-      return { token: j.access_token, ttl: j.expires_in };
+      const j = (await readJson(res)) as { access_token?: string; expires_in?: number; error?: string } | null;
+      if (!res.ok || !j?.access_token) throw new Error(`MTN token request failed (${res.status}${j?.error ? `: ${j.error}` : ""})`);
+      return { token: j.access_token, ttl: Number(j.expires_in ?? 3600) };
     });
 
-  const headers = async () => ({
-    Authorization: `Bearer ${await token()}`,
-    "X-Target-Environment": env,
-    "Ocp-Apim-Subscription-Key": subKey,
-  });
+  const headers = async () => ({ Authorization: `Bearer ${await token()}`, "X-Target-Environment": env, "Ocp-Apim-Subscription-Key": subKey });
 
   return {
     name: "mtn",
+    mode: sandbox ? "sandbox" : "live",
     async requestPayment({ amount, msisdn, externalId, note }) {
       const ref = randomUUID();
+      // The callback must be HTTPS on the providerCallbackHost. MTN sends it once with no retry, so we also poll.
       const callback = process.env.PUBLIC_BASE_URL?.startsWith("https://") ? `${process.env.PUBLIC_BASE_URL}/api/payments/mtn/callback` : undefined;
       const res = await fetch(`${base}/collection/v1_0/requesttopay`, {
         method: "POST",
@@ -64,58 +94,71 @@ function mtn(): MomoProvider | null {
           amount: String(amount),
           currency,
           externalId,
-          payer: { partyIdType: "MSISDN", partyId: `256${msisdn.replace(/\D/g, "").slice(-9)}` },
-          payerMessage: note,
-          payeeNote: note,
+          payer: { partyIdType: "MSISDN", partyId: toMsisdn(msisdn) },
+          payerMessage: note.slice(0, 160),
+          payeeNote: note.slice(0, 160),
         }),
       });
-      if (res.status !== 202) throw new Error(`MTN declined the request (${res.status})`);
-      return { providerRef: ref };
+      if (res.status !== 202) {
+        const j = (await readJson(res)) as { code?: string; message?: string } | null;
+        throw new Error(`MTN declined the request (${res.status}${j?.code ? ` ${j.code}` : ""}${j?.message ? `: ${j.message}` : ""})`);
+      }
+      return { providerRef: ref, raw: { httpStatus: 202, referenceId: ref, currency, targetEnvironment: env } };
     },
     async getStatus({ providerRef }) {
       const res = await fetch(`${base}/collection/v1_0/requesttopay/${providerRef}`, { headers: await headers() });
-      if (!res.ok) return { status: "pending" };
-      const j = (await res.json()) as { status: string; financialTransactionId?: string; reason?: string | { message?: string } };
-      if (j.status === "SUCCESSFUL") return { status: "successful", transactionId: j.financialTransactionId };
-      if (j.status === "FAILED") return { status: "failed", reason: typeof j.reason === "string" ? j.reason : j.reason?.message };
-      return { status: "pending" };
+      const j = (await readJson(res)) as { status?: string; financialTransactionId?: string; reason?: string | { code?: string; message?: string } } | null;
+      if (!res.ok) return { status: "pending", raw: { httpStatus: res.status, body: j } };
+      const reason = typeof j?.reason === "string" ? j.reason : [j?.reason?.code, j?.reason?.message].filter(Boolean).join(": ") || undefined;
+      if (j?.status === "SUCCESSFUL") return { status: "successful", transactionId: j.financialTransactionId, raw: j };
+      if (j?.status === "FAILED") return { status: "failed", reason: reason ?? "Payment failed", raw: j };
+      return { status: "pending", raw: j };
+    },
+    async ping() {
+      try {
+        tokens.delete(cacheKey);
+        await token();
+        return { ok: true, detail: `Token issued · ${base} · ${env} · ${currency}` };
+      } catch (e) {
+        return { ok: false, detail: e instanceof Error ? e.message : "Token request failed" };
+      }
     },
   };
 }
 
-/* ───────────── Airtel Money Collections ───────────── */
-
+/* ───────────── Airtel Money Collections (USSD push) ─────────────
+ * Uganda hosts: staging https://openapiuat.airtel.ug, production https://openapi.airtel.ug
+ * (openapi[uat].airtel.africa are being retired). Subscriber msisdn is sent without the country code.
+ */
 function airtel(): MomoProvider | null {
-  const base = process.env.AIRTEL_BASE_URL;
   const id = process.env.AIRTEL_CLIENT_ID;
   const secret = process.env.AIRTEL_CLIENT_SECRET;
-  if (!base || !id || !secret) return null;
+  if (!id || !secret) return null;
+  const env = process.env.AIRTEL_ENV ?? "staging";
+  const base = (process.env.AIRTEL_BASE_URL ?? (env === "production" ? "https://openapi.airtel.ug" : "https://openapiuat.airtel.ug")).replace(/\/$/, "");
+  const payPath = process.env.AIRTEL_PAYMENTS_PATH ?? "/merchant/v1/payments/";
+  const cacheKey = `airtel:${base}:${id}`;
 
   const token = () =>
-    cachedToken("airtel", async () => {
+    cachedToken(cacheKey, async () => {
       const res = await fetch(`${base}/auth/oauth2/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "*/*" },
         body: JSON.stringify({ client_id: id, client_secret: secret, grant_type: "client_credentials" }),
       });
-      if (!res.ok) throw new Error(`Airtel token failed (${res.status})`);
-      const j = (await res.json()) as { access_token: string; expires_in: number | string };
-      return { token: j.access_token, ttl: Number(j.expires_in) };
+      const j = (await readJson(res)) as { access_token?: string; expires_in?: number | string; error_description?: string } | null;
+      if (!res.ok || !j?.access_token) throw new Error(`Airtel token request failed (${res.status}${j?.error_description ? `: ${j.error_description}` : ""})`);
+      return { token: j.access_token, ttl: Number(j.expires_in ?? 7200) };
     });
 
-  const headers = async () => ({
-    Authorization: `Bearer ${await token()}`,
-    "Content-Type": "application/json",
-    Accept: "*/*",
-    "X-Country": "UG",
-    "X-Currency": "UGX",
-  });
+  const headers = async () => ({ Authorization: `Bearer ${await token()}`, "Content-Type": "application/json", Accept: "*/*", "X-Country": "UG", "X-Currency": "UGX" });
 
   return {
     name: "airtel",
+    mode: env === "production" ? "live" : "sandbox",
     async requestPayment({ amount, msisdn, externalId, note }) {
       const ref = `NF${externalId.replace(/-/g, "").slice(0, 20).toUpperCase()}`;
-      const res = await fetch(`${base}/merchant/v1/payments/`, {
+      const res = await fetch(`${base}${payPath}`, {
         method: "POST",
         headers: await headers(),
         body: JSON.stringify({
@@ -124,43 +167,60 @@ function airtel(): MomoProvider | null {
           transaction: { amount, country: "UG", currency: "UGX", id: ref },
         }),
       });
-      const j = (await res.json().catch(() => ({}))) as { status?: { success?: boolean; message?: string } };
-      if (!res.ok || j.status?.success === false) throw new Error(`Airtel declined the request${j.status?.message ? `: ${j.status.message}` : ""}`);
-      return { providerRef: ref };
+      const j = (await readJson(res)) as { status?: { success?: boolean; message?: string; response_code?: string } } | null;
+      if (!res.ok || j?.status?.success === false) {
+        throw new Error(`Airtel declined the request (${res.status}${j?.status?.response_code ? ` ${j.status.response_code}` : ""}${j?.status?.message ? `: ${j.status.message}` : ""})`);
+      }
+      return { providerRef: ref, raw: j };
     },
     async getStatus({ providerRef }) {
       const res = await fetch(`${base}/standard/v1/payments/${providerRef}`, { headers: await headers() });
-      if (!res.ok) return { status: "pending" };
-      const j = (await res.json()) as { data?: { transaction?: { status?: string; airtel_money_id?: string; message?: string } } };
-      const t = j.data?.transaction;
-      if (t?.status === "TS") return { status: "successful", transactionId: t.airtel_money_id };
-      if (t?.status === "TF") return { status: "failed", reason: t.message };
-      return { status: "pending" };
+      const j = (await readJson(res)) as { data?: { transaction?: { status?: string; airtel_money_id?: string; message?: string } } } | null;
+      if (!res.ok) return { status: "pending", raw: { httpStatus: res.status, body: j } };
+      const t = j?.data?.transaction;
+      // TS success, TF failed; TA (ambiguous) and TIP (in progress) stay pending until resolved.
+      if (t?.status === "TS") return { status: "successful", transactionId: t.airtel_money_id, raw: j };
+      if (t?.status === "TF") return { status: "failed", reason: t.message ?? "Payment failed", raw: j };
+      return { status: "pending", raw: j };
+    },
+    async ping() {
+      try {
+        tokens.delete(cacheKey);
+        await token();
+        return { ok: true, detail: `Token issued · ${base} · ${env}` };
+      } catch (e) {
+        return { ok: false, detail: e instanceof Error ? e.message : "Token request failed" };
+      }
     },
   };
 }
 
-/* ───────────── Development simulator ───────────── */
+/* ───────────── Test-mode simulator ───────────── */
 
 /**
- * Test-mode stand-in for the phone prompt: approves ~6 seconds after the request,
- * or declines when the payer number ends in 000 (to exercise the failure path).
+ * Stand-in for a network with no credentials (test mode only). Approves ~6 s after the request;
+ * payer numbers ending 000 decline, ending 111 stay pending.
  */
 function simulator(network: Network): MomoProvider {
   return {
     name: `${network}-test`,
+    mode: "simulator",
     async requestPayment() {
-      return { providerRef: `TEST-${network.toUpperCase()}-${randomUUID()}` };
+      const ref = `TEST-${network.toUpperCase()}-${randomUUID()}`;
+      return { providerRef: ref, raw: { simulated: true, referenceId: ref } };
     },
     async getStatus({ createdAt, payerMsisdn, providerRef }) {
-      if (Date.now() - createdAt.getTime() < 6000) return { status: "pending" };
-      if (payerMsisdn.endsWith("000")) return { status: "failed", reason: "Payer declined the prompt (test mode)" };
-      return { status: "successful", transactionId: `T${providerRef.slice(-12).toUpperCase()}` };
+      if (Date.now() - createdAt.getTime() < 6000 || payerMsisdn.endsWith("111")) return { status: "pending", raw: { simulated: true, status: "PENDING" } };
+      if (payerMsisdn.endsWith("000")) return { status: "failed", reason: "Payer declined the prompt (simulator)", raw: { simulated: true, status: "FAILED" } };
+      const transactionId = `T${providerRef.slice(-12).toUpperCase()}`;
+      return { status: "successful", transactionId, raw: { simulated: true, status: "SUCCESSFUL", financialTransactionId: transactionId } };
+    },
+    async ping() {
+      return { ok: true, detail: "Simulator: no credentials configured for this network" };
     },
   };
 }
 
-/** The provider for a network, or null if Mobile Money for that network isn't available here. */
 export function providerFor(network: Network): MomoProvider | null {
   const real = network === "mtn" ? mtn() : airtel();
   if (real) return real;
@@ -173,4 +233,20 @@ export function providerByName(name: string): MomoProvider | null {
   return null;
 }
 
-export const isTestMode = (network: Network) => providerFor(network)?.name.endsWith("-test") ?? false;
+/** True when payments on this network don't move real money (simulator or provider sandbox). */
+export const isTestMode = (network: Network) => {
+  const p = providerFor(network);
+  return !!p && p.mode !== "live";
+};
+
+/** MTN sandbox scenario numbers (momodeveloper.mtn.com/api-documentation/testing). Any other number succeeds. */
+export const mtnSandboxNumbers = [
+  { msisdn: "46733123450", outcome: "Failed" },
+  { msisdn: "46733123451", outcome: "Rejected" },
+  { msisdn: "46733123452", outcome: "Expired" },
+  { msisdn: "46733123453", outcome: "Ongoing (stays pending)" },
+  { msisdn: "46733123454", outcome: "Delayed" },
+  { msisdn: "46733123455", outcome: "Payer not found" },
+  { msisdn: "46733123460", outcome: "Invalid currency" },
+  { msisdn: "46733123462", outcome: "Service unavailable" },
+] as const;

@@ -18,6 +18,7 @@ import { hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/password";
 import { adminIssueReset, completePasswordReset, requestPasswordReset } from "@/lib/password-reset";
 import type { Permission } from "@/lib/permissions";
 import { normalisePhone } from "@/lib/inbox";
+import { providerByName, providerFor } from "@/lib/momo";
 import { site } from "@/lib/site";
 import { sendSms } from "@/lib/sms";
 
@@ -582,4 +583,42 @@ export async function changePassword(_: ActionResult, fd: FormData) {
   if (others.length) await db.delete(schema.sessions).where(and(eq(schema.sessions.staffId, staff.id), inArray(schema.sessions.id, others)));
   await audit(db, { actorId: staff.id, action: "staff.password_changed", entity: "staff", entityId: staff.id });
   return { ok: true, message: "Password updated. Other devices have been signed out." };
+}
+
+/* ───────────── Payments lab (sandbox testing; never touches loans) ───────────── */
+
+export type LabRequest = { network: "mtn" | "airtel"; provider: string; mode: string; providerRef: string; msisdn: string; createdAt: number; raw?: unknown };
+
+export async function labPing(network: "mtn" | "airtel") {
+  await authorize("payments.lab");
+  const p = providerFor(network);
+  if (!p) return { ok: false, mode: "off", detail: "Not configured" };
+  return { ...(await p.ping()), mode: p.mode };
+}
+
+export async function labRequest(_: { error?: string; request?: LabRequest }, fd: FormData): Promise<{ error?: string; request?: LabRequest }> {
+  try {
+    const actor = await authorize("payments.lab");
+    const network = fd.get("network") === "airtel" ? "airtel" : "mtn";
+    const msisdn = String(fd.get("msisdn") ?? "").replace(/\D/g, "");
+    const amount = Number(fd.get("amount"));
+    if (msisdn.length < 9 || msisdn.length > 15) return { error: "Enter a phone number (9–15 digits)." };
+    if (!Number.isInteger(amount) || amount < 1) return { error: "Enter a whole amount." };
+    const p = providerFor(network);
+    if (!p) return { error: `${network === "mtn" ? "MTN" : "Airtel"} isn’t configured.` };
+    if (p.mode === "live") return { error: "The lab only runs against sandbox or the simulator, never live money." };
+    const { providerRef, raw } = await p.requestPayment({ amount, msisdn, externalId: crypto.randomUUID(), note: "NANAM payments lab test" });
+    await audit(db, { actorId: actor.id, action: "payments.lab_request", entity: "payments_lab", detail: { network, mode: p.mode, amount, msisdn, providerRef } });
+    return { request: { network, provider: p.name, mode: p.mode, providerRef, msisdn, createdAt: Date.now(), raw } };
+  } catch (err) {
+    if (err instanceof PermissionError) return { error: err.message };
+    return { error: err instanceof Error ? err.message : "Request failed" };
+  }
+}
+
+export async function labStatus(req: LabRequest) {
+  await authorize("payments.lab");
+  const p = providerByName(req.provider);
+  if (!p || p.mode === "live") return { status: "failed" as const, reason: "Provider unavailable" };
+  return p.getStatus({ providerRef: req.providerRef, createdAt: new Date(req.createdAt), payerMsisdn: req.msisdn });
 }

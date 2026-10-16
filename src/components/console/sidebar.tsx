@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  FlaskConical,
   MessageSquareText,
   Undo2,
   ShieldCheck,
@@ -26,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 export type NavItem = { href: string; label: string; icon: keyof typeof icons; badge?: number };
 
-const icons = { LayoutDashboard, FileStack, Banknote, Undo2, ShieldCheck, Handshake, Inbox, MessageSquareText, Users, History, UserCog } satisfies Record<string, LucideIcon>;
+const icons = { LayoutDashboard, FileStack, Banknote, Undo2, ShieldCheck, Handshake, Inbox, MessageSquareText, FlaskConical, Users, History, UserCog } satisfies Record<string, LucideIcon>;
 
 export function Sidebar({ items, user }: { items: NavItem[]; user: { name: string; role: string } }) {
   const pathname = usePathname();

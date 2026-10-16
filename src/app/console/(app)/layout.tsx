@@ -31,6 +31,7 @@ export default async function ConsoleLayout({ children }: LayoutProps<"/console"
     { href: "/console/agents", label: "Agents", icon: "Handshake", badge: pendingAgents.n },
     { href: "/console/messages", label: "Messages", icon: "Inbox", badge: openMsgs.n },
     { href: "/console/sms", label: "SMS & reminders", icon: "MessageSquareText" },
+    ...(can(staff.role, "payments.lab") ? [{ href: "/console/payments-lab", label: "Payments lab", icon: "FlaskConical" } as NavItem] : []),
     ...(can(staff.role, "staff.manage") ? [{ href: "/console/team", label: "Team", icon: "Users" } as NavItem] : []),
     ...(can(staff.role, "audit.view") ? [{ href: "/console/audit", label: "Audit log", icon: "History" } as NavItem] : []),
   ];
