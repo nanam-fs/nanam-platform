@@ -18,6 +18,8 @@ const matrix = {
   "commission.pay": ["finance", "admin"],
   "refund.approve": ["manager", "admin"],
   "customer.update_phone": ["manager", "admin"],
+  "kyc.request": ["officer", "manager", "admin"],
+  "kyc.decide": ["manager", "admin"],
   "refund.pay": ["finance", "admin"],
   "message.manage": ["officer", "manager", "admin"],
   "reminders.run": ["finance", "manager", "admin"],

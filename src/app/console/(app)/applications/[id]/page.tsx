@@ -8,7 +8,7 @@ import { requireStaff } from "@/lib/auth";
 import { creditPolicy } from "@/lib/lending";
 import { quote } from "@/lib/loan-math";
 import { can } from "@/lib/permissions";
-import { documentLabels, documentSlots, requiredDocuments } from "@/lib/documents-config";
+import { coveredByIdentityCheck, documentLabels, documentSlots, missingDocuments, requiredDocuments } from "@/lib/documents-config";
 import { getProduct, type ProductSlug } from "@/lib/products";
 import { formatUGX } from "@/lib/utils";
 import {
@@ -18,6 +18,8 @@ import {
   DecideForm,
   DisburseForm,
   DocumentReview,
+  KycDecisionForm,
+  SendKycLinkButton,
   NoteForm,
   RecommendForm,
   StaffUploader,
@@ -47,6 +49,7 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
       notes: { orderBy: desc(schema.notes.createdAt), with: { author: { columns: { name: true } } } },
       collateral: { orderBy: asc(schema.collateral.createdAt) },
       documents: { orderBy: asc(schema.documents.createdAt), with: { reviewer: { columns: { name: true } } } },
+      kycChecks: { orderBy: desc(schema.kycChecks.createdAt), limit: 5, with: { reviewer: { columns: { name: true } } } },
       loan: { columns: { id: true, reference: true } },
     },
   });
@@ -66,8 +69,18 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
   const hasHeld = app.collateral.some((c) => c.status === "held");
   const open = ["new", "reviewing", "recommended", "approved"].includes(app.status);
   const required = requiredDocuments[app.product as ProductSlug] ?? [];
-  const docsVerified = required.filter((k) => app.documents.some((d) => d.kind === k && d.status === "verified")).length;
-  const docsMissing = required.filter((k) => !app.documents.some((d) => d.kind === k && d.status !== "rejected"));
+  const docsVerified = required.filter(
+    (k) => (app.kycStatus === "verified" && coveredByIdentityCheck.includes(k)) || app.documents.some((d) => d.kind === k && d.status === "verified"),
+  ).length;
+  const kycVerified = app.kycStatus === "verified";
+  const docsMissing = missingDocuments(app.product, app.documents, kycVerified);
+  const kyc = app.kycChecks[0];
+  const identityKinds = ["id_front", "id_back", "selfie"];
+  const supportingDocs = app.documents.filter((d) => !identityKinds.includes(d.kind));
+  const kycImages = {
+    front: [...app.documents].reverse().find((d) => d.kind === "id_front"),
+    selfie: [...app.documents].reverse().find((d) => d.kind === "selfie"),
+  };
 
   return (
     <>
@@ -164,15 +177,66 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
           </Card>
 
           <Card
+            title="Identity check"
+            actions={
+              <Badge tone={kycVerified ? "good" : app.kycStatus === "rejected" ? "bad" : app.kycStatus ? "progress" : "neutral"}>
+                {app.kycStatus ? app.kycStatus.replace("_", " ") : "not started"}
+              </Badge>
+            }
+          >
+            {kyc ? (
+              <div className="space-y-4">
+                {(kycImages.front || kycImages.selfie) && (
+                  <div className="grid grid-cols-[1.586fr_1fr] gap-3">
+                    {kycImages.front && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/documents/${kycImages.front.id}`} alt="ID front" className="aspect-[1.586] w-full rounded-lg border border-line object-cover" />
+                    )}
+                    {kycImages.selfie && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/documents/${kycImages.selfie.id}`} alt="Selfie" className="aspect-[1.586] w-full rounded-lg border border-line object-cover" />
+                    )}
+                  </div>
+                )}
+                <p className="text-sm text-ink/80">{kyc.decisionReason ?? (kyc.status === "awaiting_capture" ? "Link sent; waiting for the applicant’s photos." : "Processing…")}</p>
+                {kyc.checks && (
+                  <ul className="space-y-1.5 text-sm">
+                    {kyc.checks.map((c) => (
+                      <li key={c.name} className="flex gap-2">
+                        {c.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-forest-600" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />}
+                        <span>
+                          <span className="font-medium">{c.name}</span> <span className="text-muted">· {c.detail}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-muted">
+                  {kyc.provider === "in_person" ? "Verified in person" : `Provider: ${kyc.provider ?? "—"}${kyc.providerStatus ? ` · result ${kyc.providerStatus}` : ""}${kyc.providerReason ? ` (${kyc.providerReason})` : ""}`}
+                  {kyc.reviewer && ` · reviewed by ${kyc.reviewer.name}: “${kyc.reviewNote}”`} · {fmtDateTime(kyc.completedAt ?? kyc.createdAt)}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted">No identity check yet. The applicant is prompted after applying; you can also text them a link.</p>
+            )}
+            {open && (
+              <div className="mt-5 flex flex-col gap-4 border-t border-line pt-4">
+                {can(staff.role, "kyc.request") && !kycVerified && <SendKycLinkButton id={app.id} />}
+                {can(staff.role, "kyc.decide") && !kycVerified && <KycDecisionForm id={app.id} inPerson={!kyc || !["review", "processing", "retake"].includes(kyc.status)} />}
+              </div>
+            )}
+          </Card>
+
+          <Card
             title="Documents"
             actions={<Badge tone={docsMissing.length ? "progress" : "good"}>{docsVerified} of {required.length} required verified</Badge>}
             padded={false}
           >
-            {app.documents.length === 0 ? (
+            {supportingDocs.length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted">No documents uploaded yet.</p>
             ) : (
               <ul className="divide-y divide-line">
-                {app.documents.map((d) => (
+                {supportingDocs.map((d) => (
                   <li key={d.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <p className="font-medium text-forest-950">{documentLabels[d.kind]}</p>
@@ -197,8 +261,8 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
                 <p className="mb-3 text-sm font-medium text-forest-950">Add a document {docsMissing.length > 0 && <span className="font-normal text-muted">· missing: {docsMissing.map((k) => documentLabels[k]).join(", ")}</span>}</p>
                 <StaffUploader
                   applicationId={app.id}
-                  slots={documentSlots(app.product)}
-                  required={required}
+                  slots={documentSlots(app.product).filter((k) => !(kycVerified && coveredByIdentityCheck.includes(k)))}
+                  required={required.filter((k) => !(kycVerified && coveredByIdentityCheck.includes(k)))}
                   existing={app.documents.filter((d) => d.status !== "rejected").map((d) => ({ kind: d.kind, fileName: d.fileName }))}
                 />
               </div>
@@ -258,10 +322,10 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
                 hint={app.phoneVerifiedAt ? `Confirmed ${fmtDateTime(app.phoneVerifiedAt)}` : "Call the applicant on this number before proceeding"}
               />
               <Check
-                ok={false}
-                warnOnly
-                label="National ID: check against the physical card"
-                hint="NIN format is valid. Automatic NIRA verification isn’t connected; compare the ID document and photo in person."
+                ok={kycVerified}
+                warnOnly={!kycVerified && app.kycStatus !== "rejected"}
+                label={kycVerified ? "Identity verified" : app.kycStatus === "rejected" ? "Identity check failed" : app.kycStatus === "review" ? "Identity check needs review" : "Identity not verified yet"}
+                hint={kyc?.decisionReason ?? "Send the applicant a verification link, or verify in person against the physical ID."}
               />
               <Check
                 ok={docsVerified === required.length}
@@ -311,6 +375,8 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
               </p>
               {!hasHeld ? (
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Record the original collateral as held before disbursing.</p>
+              ) : creditPolicy.requireIdentityCheck && !kycVerified ? (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Verify the borrower’s identity before disbursing (see Identity check).</p>
               ) : can(staff.role, "loan.disburse") ? (
                 <DisburseForm id={app.id} />
               ) : (

@@ -6,7 +6,8 @@ import { DocumentUploader } from "@/components/document-uploader";
 import { db, schema } from "@/db";
 import { requireCustomer } from "@/lib/customer-auth";
 import { applicantCanUpload } from "@/lib/document-access";
-import { documentLabels, documentSlots, requiredDocuments } from "@/lib/documents-config";
+import { IdentityCheck } from "@/components/identity-check";
+import { coveredByIdentityCheck, documentLabels, documentSlots, requiredDocuments } from "@/lib/documents-config";
 import { getProduct, type ProductSlug } from "@/lib/products";
 import { formatUGX } from "@/lib/utils";
 
@@ -45,11 +46,16 @@ export default async function ApplicationDocuments({ params }: PageProps<"/porta
           </ul>
         </div>
       )}
+      {applicantCanUpload(app.status) && (
+        <div className="mt-6">
+          <IdentityCheck applicationId={app.id} initialStatus={app.kycStatus} />
+        </div>
+      )}
       {applicantCanUpload(app.status) ? (
         <div className="mt-6">
           <DocumentUploader
             applicationId={app.id}
-            slots={documentSlots(app.product)}
+            slots={documentSlots(app.product).filter((k) => !(app.kycStatus === "verified" && coveredByIdentityCheck.includes(k)))}
             required={requiredDocuments[app.product as ProductSlug]}
             existing={app.documents.filter((d) => d.status !== "rejected").map((d) => ({ kind: d.kind, fileName: d.fileName }))}
           />

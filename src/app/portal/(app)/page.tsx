@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, FileText, Wallet } from "lucide-react";
 import { requireCustomer } from "@/lib/customer-auth";
-import { requiredDocuments } from "@/lib/documents-config";
-import { getProduct, type ProductSlug } from "@/lib/products";
+import { missingDocuments } from "@/lib/documents-config";
+import { getProduct } from "@/lib/products";
 import { customerApplications, customerLoans } from "@/lib/portal-data";
 import { cn, formatUGX } from "@/lib/utils";
 
@@ -116,26 +116,28 @@ export default async function PortalHome() {
               ))}
             </ol>
             {(() => {
-              const need = requiredDocuments[a.product as ProductSlug] ?? [];
-              const missing = need.filter((k) => !a.documents.some((d) => d.kind === k && d.status !== "rejected"));
+              const missing = missingDocuments(a.product, a.documents, a.kycStatus === "verified");
               const rejected = a.documents.some((d) => d.status === "rejected");
+              const needsId = a.kycStatus !== "verified" && a.kycStatus !== "review" && a.kycStatus !== "processing";
               return (
                 <Link
                   href={`/portal/applications/${a.id}`}
                   className={cn(
                     "mt-5 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm",
-                    missing.length || rejected ? "bg-amber-50 text-amber-900" : "bg-forest-50 text-forest-800",
+                    needsId || missing.length || rejected ? "bg-amber-50 text-amber-900" : "bg-forest-50 text-forest-800",
                   )}
                 >
                   <span>
-                    {rejected
+                    {needsId
+                      ? "Verify your identity (1 minute)"
+                      : rejected
                       ? "A document needs replacing"
                       : missing.length
                         ? `${missing.length} document${missing.length === 1 ? "" : "s"} still needed`
                         : "All required documents uploaded"}
                   </span>
                   <span className="flex items-center gap-1 font-medium">
-                    {missing.length || rejected ? "Upload" : "View"} <ArrowRight className="size-4" />
+                    {needsId ? "Start" : missing.length || rejected ? "Upload" : "View"} <ArrowRight className="size-4" />
                   </span>
                 </Link>
               );

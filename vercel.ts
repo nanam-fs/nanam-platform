@@ -8,5 +8,7 @@ export const config: VercelConfig = {
     { path: "/api/payments/sweep", schedule: "*/15 * * * *" },
     // Payment reminders at 09:00 Kampala time (06:00 UTC).
     { path: "/api/reminders/run", schedule: "0 6 * * *" },
+    // Identity checks whose webhook was missed.
+    { path: "/api/kyc/sweep", schedule: "*/10 * * * *" },
   ],
 };

@@ -132,6 +132,15 @@ for (const d of seeds) {
   if (d.stage === "declined") {
     await db.insert(s.notes).values({ applicationId: app.id, authorId: staffIds.manager, body: "Declined: requested amount far exceeds verified income; instalment would be over 150% of income." });
   }
+  // Approved and disbursed demo clients were verified in person at the branch.
+  if (["approved", "loan"].includes(d.stage)) {
+    await db.insert(s.kycChecks).values({
+      applicationId: app.id, tokenHash: `in-person-${randomBytes(8).toString("hex")}`, tokenExpiresAt: createdAt, status: "verified",
+      provider: "in_person", decisionReason: "Verified in person against the physical National ID.", reviewedBy: staffIds.officer,
+      reviewNote: "Checked card, photo and NIN at the branch", completedAt: createdAt,
+    });
+    await db.update(s.applications).set({ kycStatus: "verified" }).where(eq(s.applications.id, app.id));
+  }
   if (d.collateral) {
     const held = ["approved", "loan", "recommended"].includes(d.stage);
     const repaid = d.stage === "loan" && d.paidInstalments === d.months;

@@ -5,7 +5,8 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { DocumentUploader } from "@/components/document-uploader";
 import { Choice, Field, Honeypot, Input, Select, Textarea } from "@/components/form";
-import { documentSlots, requiredDocuments } from "@/lib/documents-config";
+import { coveredByIdentityCheck, documentSlots, requiredDocuments } from "@/lib/documents-config";
+import { IdentityCheck } from "@/components/identity-check";
 import { Button } from "@/components/ui";
 import { quote } from "@/lib/loan-math";
 import { products, type ProductSlug } from "@/lib/products";
@@ -75,16 +76,21 @@ export function ApplyForm({
           <span className="text-xs uppercase tracking-[0.16em] text-muted">Your reference</span>
           <span className="mt-1 font-mono text-xl font-medium text-forest-950">{state.reference}</span>
         </p>
+        {state.upload && (
+          <div className="mx-auto mt-10 max-w-xl">
+            <IdentityCheck applicationId={state.upload.applicationId} uploadToken={state.upload.token} />
+          </div>
+        )}
         {state.upload ? (
           <div className="mx-auto mt-10 max-w-xl text-left">
-            <p className="font-display text-2xl text-forest-950">Speed up your approval</p>
+            <p className="font-display text-2xl text-forest-950">Then, your documents</p>
             <p className="mt-1 mb-5 text-sm text-muted">
-              Upload your documents now. Photos from your phone are fine. You can also add them later by signing in at nanam.ug/portal.
+              Photos from your phone are fine. You can also add them later by signing in at nanam.ug/portal.
             </p>
             <DocumentUploader
               applicationId={state.upload.applicationId}
               token={state.upload.token}
-              slots={documentSlots(state.upload.product)}
+              slots={documentSlots(state.upload.product).filter((k) => !coveredByIdentityCheck.includes(k))}
               required={requiredDocuments[state.upload.product as ProductSlug]}
             />
           </div>

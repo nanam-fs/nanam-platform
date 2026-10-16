@@ -93,6 +93,16 @@ export const agents = pgTable("agents", {
 
 /* ───────────── Applications ───────────── */
 
+export const kycStatus = pgEnum("kyc_status", [
+  "awaiting_capture",
+  "processing",
+  "verified",
+  "review",
+  "rejected",
+  "retake",
+]);
+
+
 export const applicationStatus = pgEnum("application_status", [
   "new",
   "reviewing",
@@ -116,6 +126,8 @@ export const applications = pgTable(
     fullName: text("full_name").notNull(),
     phone: text("phone").notNull(),
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
+    // Latest identity check outcome, denormalised for lists and gates.
+    kycStatus: kycStatus("kyc_status"),
     email: text("email"),
     nin: text("nin").notNull(),
     district: text("district").notNull(),
@@ -165,6 +177,9 @@ export const documentKind = pgEnum("document_kind", [
   "contract",
   "trading_licence",
   "sale_agreement",
+  "id_front",
+  "id_back",
+  "selfie",
   "other",
 ]);
 export const documentStatus = pgEnum("document_status", ["pending", "verified", "rejected"]);
@@ -191,6 +206,41 @@ export const documents = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("documents_application_idx").on(t.applicationId)],
+);
+
+/* ───────────── Identity verification (KYC) ───────────── */
+
+/**
+ * One identity check: ID front/back + selfie captured on the applicant's phone,
+ * verified by a KYC provider, then cross-checked against what they typed.
+ */
+export const kycChecks = pgTable(
+  "kyc_checks",
+  {
+    id: id(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id),
+    // SHA-256 of the capture link token (QR / mobile handoff). Valid 30 minutes.
+    tokenHash: text("token_hash").notNull().unique(),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }).notNull(),
+    status: kycStatus("status").notNull().default("awaiting_capture"),
+    provider: text("provider"),
+    providerJobId: text("provider_job_id").unique(),
+    providerStatus: text("provider_status"),
+    providerReason: text("provider_reason"),
+    // Data read from the ID by the provider, e.g. full name, ID number, date of birth.
+    idFields: jsonb("id_fields").$type<Record<string, string | null>>(),
+    checks: jsonb("checks").$type<{ name: string; ok: boolean; detail: string }[]>(),
+    decisionReason: text("decision_reason"),
+    consentAt: timestamp("consent_at", { withTimezone: true }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    reviewedBy: uuid("reviewed_by").references(() => staff.id),
+    reviewNote: text("review_note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("kyc_application_idx").on(t.applicationId), index("kyc_status_idx").on(t.status)],
 );
 
 /* ───────────── Collateral register ───────────── */
@@ -460,12 +510,18 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
   notes: many(notes),
   collateral: many(collateral),
   documents: many(documents),
+  kycChecks: many(kycChecks),
   loan: one(loans, { fields: [applications.id], references: [loans.applicationId] }),
 }));
 
 export const documentsRelations = relations(documents, ({ one }) => ({
   application: one(applications, { fields: [documents.applicationId], references: [applications.id] }),
   reviewer: one(staff, { fields: [documents.reviewedBy], references: [staff.id] }),
+}));
+
+export const kycChecksRelations = relations(kycChecks, ({ one }) => ({
+  application: one(applications, { fields: [kycChecks.applicationId], references: [applications.id] }),
+  reviewer: one(staff, { fields: [kycChecks.reviewedBy], references: [staff.id] }),
 }));
 
 export const notesRelations = relations(notes, ({ one }) => ({
@@ -533,3 +589,5 @@ export type Loan = typeof loans.$inferSelect;
 export type Installment = typeof installments.$inferSelect;
 export type PaymentRequest = typeof paymentRequests.$inferSelect;
 export type DocumentKind = (typeof documentKind.enumValues)[number];
+export type KycCheck = typeof kycChecks.$inferSelect;
+export type KycStatus = KycCheck["status"];

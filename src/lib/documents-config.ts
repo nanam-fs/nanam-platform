@@ -13,6 +13,9 @@ export const documentLabels: Record<DocumentKind, string> = {
   contract: "Contract or LPO",
   trading_licence: "Trading licence / certificate of incorporation",
   sale_agreement: "Sale agreement for the asset",
+  id_front: "National ID: front (identity check)",
+  id_back: "National ID: back (identity check)",
+  selfie: "Selfie (identity check)",
   other: "Other supporting document",
 };
 
@@ -47,4 +50,12 @@ export const extensionFor: Record<AllowedType, string> = { "image/jpeg": "jpg", 
 export function cleanFileName(name: string, type: AllowedType) {
   const base = name.split(/[\\/]/).pop()!.replace(/[^\w.\- ]+/g, "").replace(/\.[^.]*$/, "").trim().slice(0, 60) || "document";
   return `${base}.${extensionFor[type]}`;
+}
+
+/** Requirements already satisfied by a verified identity check (ID front/back + live selfie). */
+export const coveredByIdentityCheck: DocumentKind[] = ["national_id", "passport_photo"];
+
+export function missingDocuments(product: string, docs: { kind: DocumentKind; status: string }[], kycVerified: boolean) {
+  const need = requiredDocuments[product as ProductSlug] ?? [];
+  return need.filter((k) => !(kycVerified && coveredByIdentityCheck.includes(k)) && !docs.some((d) => d.kind === k && d.status !== "rejected"));
 }

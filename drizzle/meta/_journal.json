@@ -43,6 +43,13 @@
       "when": 1792150276172,
       "tag": "0005_recovery_and_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792151304439,
+      "tag": "0006_kyc",
+      "breakpoints": true
     }
   ]
 }

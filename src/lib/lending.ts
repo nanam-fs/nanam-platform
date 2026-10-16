@@ -100,6 +100,8 @@ export const creditPolicy = {
   maxDebtToIncome: 0.4,
   /** Minimum collateral valuation as a multiple of the loan amount. */
   minCollateralCover: 1.5,
+  /** Block disbursement until the borrower's identity is verified (automatically or in person). */
+  requireIdentityCheck: true,
 };
 
 /* ───────────── Early settlement ───────────── */

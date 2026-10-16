@@ -9,6 +9,8 @@ import {
   addCollateral,
   addNote,
   changeCustomerPhone,
+  decideKyc,
+  sendKycLink,
   decide,
   disburse,
   markCollateralHeld,
@@ -231,6 +233,33 @@ export function ChangePhoneForm({ id }: { id: string }) {
           <CInput name="verification" placeholder="How you verified, e.g. called + matched NIN" aria-label="Verification" required error={errors?.verification} />
           {(errors?.phone || errors?.verification) && <p className="text-xs text-red-600">{errors?.phone?.[0] ?? errors?.verification?.[0]}</p>}
           <Submit pending={pending} variant="secondary">Change number</Submit>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function SendKycLinkButton({ id }: { id: string }) {
+  return (
+    <ActionButton variant="secondary" action={() => sendKycLink(id)}>
+      Text the applicant a verification link
+    </ActionButton>
+  );
+}
+
+export function KycDecisionForm({ id, inPerson }: { id: string; inPerson: boolean }) {
+  return (
+    <ActionForm action={decideKyc.bind(null, id)} resetOnSuccess={false} className="space-y-2">
+      {({ errors }, pending) => (
+        <>
+          <p className="text-xs font-medium text-ink/80">{inPerson ? "Verified the client in person?" : "Your decision after reviewing the photos"}</p>
+          <CSelect name="outcome" defaultValue="verified" aria-label="Outcome">
+            <option value="verified">{inPerson ? "Verified in person against the physical ID" : "Approve: identity confirmed"}</option>
+            <option value="rejected">Reject: identity not confirmed</option>
+          </CSelect>
+          <CInput name="note" required minLength={10} placeholder="What you checked, e.g. photo and NIN match the card" aria-label="Note" error={errors?.note} />
+          {errors?.note && <p className="text-xs text-red-600">{errors.note[0]}</p>}
+          <Submit pending={pending} variant="secondary">Record identity decision</Submit>
         </>
       )}
     </ActionForm>

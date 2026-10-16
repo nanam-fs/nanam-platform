@@ -34,7 +34,7 @@ export async function customerApplications(phone: string) {
   return db.query.applications.findMany({
     where: eq(schema.applications.phone, phone),
     orderBy: desc(schema.applications.createdAt),
-    columns: { id: true, reference: true, status: true, product: true, amount: true, months: true, approvedAmount: true, approvedMonths: true, createdAt: true },
+    columns: { id: true, reference: true, status: true, product: true, amount: true, months: true, approvedAmount: true, approvedMonths: true, createdAt: true, kycStatus: true },
     with: { documents: { columns: { kind: true, status: true } } },
   });
 }

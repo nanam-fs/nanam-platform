@@ -18,6 +18,8 @@ import { hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/password";
 import { adminIssueReset, completePasswordReset, requestPasswordReset } from "@/lib/password-reset";
 import type { Permission } from "@/lib/permissions";
 import { normalisePhone } from "@/lib/inbox";
+import { latestKycCheck, reviewKycCheck, startKycCheck } from "@/lib/kyc";
+import { creditPolicy } from "@/lib/lending";
 import { providerByName, providerFor } from "@/lib/momo";
 import { site } from "@/lib/site";
 import { sendSms } from "@/lib/sms";
@@ -103,6 +105,57 @@ export async function issueResetLink(staffId: string): Promise<ActionResult> {
     const { link, ttl } = await adminIssueReset(staffId, actor.id);
     return `Share this one-time link privately (valid ${ttl / 60} hours): ${link}`;
   });
+}
+
+/* ───────────── Identity checks ───────────── */
+
+export async function sendKycLink(applicationId: string) {
+  const r = await run("kyc.request", async (actor) => {
+    const app = await db.query.applications.findFirst({ where: eq(schema.applications.id, applicationId), columns: { phone: true, fullName: true } });
+    if (!app) throw new ActionError("Application not found.");
+    const { token } = await startKycCheck(applicationId).catch((e) => {
+      throw new ActionError(e instanceof Error ? e.message : "Couldn’t start a check.");
+    });
+    const origin = process.env.PUBLIC_BASE_URL?.replace(/\/$/, "") ?? `${(await headers()).get("x-forwarded-proto") ?? "http"}://${(await headers()).get("host")}`;
+    const url = `${origin}/verify/${token}`;
+    await sendSms(app.phone, `NANAM: Hi ${app.fullName.split(" ")[0]}, please confirm your identity for your loan application (1 minute): ${url} Link valid 30 min.`);
+    await audit(db, { actorId: actor.id, action: "kyc.link_sent", entity: "application", entityId: applicationId });
+    return `Verification link texted to ${app.phone}. It’s valid for 30 minutes.`;
+  });
+  revalidatePath(`/console/applications/${applicationId}`);
+  return r;
+}
+
+export async function decideKyc(applicationId: string, _: ActionResult, fd: FormData) {
+  const r = await run("kyc.decide", async (actor) => {
+    const data = z
+      .object({ outcome: z.enum(["verified", "rejected"]), note: z.string().trim().min(10, "Describe what you checked (at least 10 characters)") })
+      .parse(form(fd));
+    const latest = await latestKycCheck(applicationId);
+    if (latest && ["review", "processing", "retake"].includes(latest.status)) {
+      await reviewKycCheck(latest.id, actor.id, data.outcome, data.note).catch((e) => {
+        throw new ActionError(e instanceof Error ? e.message : "Couldn’t record the decision.");
+      });
+    } else {
+      // In-person verification (walk-in client): record it as its own check.
+      await db.insert(schema.kycChecks).values({
+        applicationId,
+        tokenHash: `in-person-${crypto.randomUUID()}`,
+        tokenExpiresAt: new Date(),
+        status: data.outcome,
+        provider: "in_person",
+        decisionReason: data.outcome === "verified" ? "Verified in person against the physical National ID." : "Identity could not be confirmed in person.",
+        reviewedBy: actor.id,
+        reviewNote: data.note,
+        completedAt: new Date(),
+      });
+      await db.update(schema.applications).set({ kycStatus: data.outcome }).where(eq(schema.applications.id, applicationId));
+      await audit(db, { actorId: actor.id, action: `kyc.in_person_${data.outcome}`, entity: "application", entityId: applicationId, detail: { note: data.note } });
+    }
+    return data.outcome === "verified" ? "Identity marked as verified." : "Identity marked as not verified.";
+  });
+  revalidatePath("/console", "layout");
+  return r;
 }
 
 /* ───────────── Customer phone change ───────────── */
@@ -330,6 +383,9 @@ export async function disburse(applicationId: string, _: ActionResult, fd: FormD
 
     loanId = await db.transaction(async (tx) => {
       const app = await moveApplication(tx, applicationId, ["approved"], "disbursed");
+      if (creditPolicy.requireIdentityCheck && app.kycStatus !== "verified") {
+        throw new ActionError("Verify the borrower’s identity before disbursing (identity check or in person).");
+      }
       const held = await tx
         .select({ n: sql<number>`count(*)::int` })
         .from(schema.collateral)
