@@ -5,12 +5,15 @@
  * in a repository, so they are gitignored and fetched from the official source before dev/build.
  * Files are extracted byte-for-byte (the licence forbids modifying them).
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
 
-const dir = join(dirname(fileURLToPath(import.meta.url)), "../src/app/fonts");
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const dir = join(root, "src/app/fonts");
+// Vercel restores node_modules/.cache between builds, so after the first download no network is needed.
+const cache = join(root, "node_modules/.cache/nanam-fonts");
 const wanted: Record<string, string[]> = {
   switzer: ["Switzer-Variable.woff2", "Switzer-VariableItalic.woff2"],
   "cabinet-grotesk": ["CabinetGrotesk-Variable.woff2"],
@@ -44,16 +47,39 @@ function extract(zip: Buffer, names: string[]) {
   return out;
 }
 
+/** Fontshare can be slow to answer from some regions: retry with growing waits before giving up. */
+async function download(family: string) {
+  const url = `https://api.fontshare.com/v2/fonts/download/${family}`;
+  let last: unknown;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(45_000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return Buffer.from(await res.arrayBuffer());
+    } catch (err) {
+      last = err;
+      console.warn(`fonts: ${family} download attempt ${attempt} failed (${err instanceof Error ? err.message : err}); retrying`);
+      await new Promise((r) => setTimeout(r, attempt * 3000));
+    }
+  }
+  throw new Error(`Could not download ${family} from Fontshare after 5 attempts: ${last instanceof Error ? last.message : last}`);
+}
+
 mkdirSync(dir, { recursive: true });
+mkdirSync(cache, { recursive: true });
 for (const [family, files] of Object.entries(wanted)) {
   if (files.every((f) => existsSync(join(dir, f)))) continue;
-  const res = await fetch(`https://api.fontshare.com/v2/fonts/download/${family}`);
-  if (!res.ok) throw new Error(`Fontshare download for ${family} failed: HTTP ${res.status}`);
-  const found = extract(Buffer.from(await res.arrayBuffer()), files);
+  if (files.every((f) => existsSync(join(cache, f)))) {
+    for (const f of files) copyFileSync(join(cache, f), join(dir, f));
+    console.log(`fonts: ${files.join(", ")} from build cache`);
+    continue;
+  }
+  const found = extract(await download(family), files);
   for (const f of files) {
     const data = found.get(f);
     if (!data) throw new Error(`${f} not found in the Fontshare ${family} package`);
     writeFileSync(join(dir, f), data);
+    writeFileSync(join(cache, f), data);
   }
   console.log(`fonts: fetched ${files.join(", ")} from Fontshare`);
 }
