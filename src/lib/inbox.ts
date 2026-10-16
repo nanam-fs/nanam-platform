@@ -19,7 +19,7 @@ export function normalisePhone(v: string) {
   return `+256${digits.slice(-9)}`;
 }
 
-export async function saveApplication(data: z.infer<typeof applicationSchema>) {
+export async function saveApplication(data: z.infer<typeof applicationSchema>, phoneVerifiedAt: Date | null = null) {
   const reference = makeReference("application");
   const agent = data.referral
     ? await db.query.agents.findFirst({
@@ -37,6 +37,7 @@ export async function saveApplication(data: z.infer<typeof applicationSchema>) {
       purpose: data.purpose,
       fullName: data.fullName,
       phone: normalisePhone(data.phone),
+      phoneVerifiedAt,
       email: data.email || null,
       nin: data.nin,
       district: data.district,
@@ -52,12 +53,12 @@ export async function saveApplication(data: z.infer<typeof applicationSchema>) {
   return { reference, id: row.id };
 }
 
-export async function saveMessage(data: z.infer<typeof contactSchema>) {
+export async function saveMessage(data: Omit<z.infer<typeof contactSchema>, "email" | "topic"> & { email?: string; topic: string }) {
   const reference = makeReference("contact");
   await db.insert(schema.messages).values({
     reference,
     name: data.name,
-    email: data.email,
+    email: data.email || null,
     phone: data.phone ? normalisePhone(data.phone) : null,
     topic: data.topic,
     body: data.message,

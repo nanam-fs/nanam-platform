@@ -51,6 +51,23 @@ export const sessions = pgTable(
   (t) => [index("sessions_staff_idx").on(t.staffId)],
 );
 
+export const passwordResets = pgTable(
+  "password_resets",
+  {
+    // SHA-256 of the emailed token.
+    id: text("id").primaryKey(),
+    staffId: uuid("staff_id")
+      .notNull()
+      .references(() => staff.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    issuedBy: text("issued_by", { enum: ["self", "admin"] }).notNull(),
+    ip: text("ip"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("password_resets_staff_idx").on(t.staffId)],
+);
+
 /* ───────────── Agents (partner network) ───────────── */
 
 export const agentStatus = pgEnum("agent_status", ["pending", "active", "suspended", "rejected"]);
@@ -98,6 +115,7 @@ export const applications = pgTable(
     purpose: text("purpose").notNull(),
     fullName: text("full_name").notNull(),
     phone: text("phone").notNull(),
+    phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
     email: text("email"),
     nin: text("nin").notNull(),
     district: text("district").notNull(),
@@ -292,6 +310,8 @@ export const otpCodes = pgTable(
   {
     id: id(),
     phone: text("phone").notNull(),
+    // "login" for the portal; "application" to confirm an applicant owns the number.
+    purpose: text("purpose", { enum: ["login", "application"] }).notNull().default("login"),
     codeHash: text("code_hash").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     attempts: integer("attempts").notNull().default(0),
@@ -410,7 +430,7 @@ export const messages = pgTable("messages", {
   id: id(),
   reference: text("reference").notNull().unique(),
   name: text("name").notNull(),
-  email: text("email").notNull(),
+  email: text("email"),
   phone: text("phone"),
   topic: text("topic").notNull(),
   body: text("body").notNull(),
@@ -495,6 +515,10 @@ export const repaymentsRelations = relations(repayments, ({ one }) => ({
 export const commissionsRelations = relations(commissions, ({ one }) => ({
   agent: one(agents, { fields: [commissions.agentId], references: [agents.id] }),
   loan: one(loans, { fields: [commissions.loanId], references: [loans.id] }),
+}));
+
+export const passwordResetsRelations = relations(passwordResets, ({ one }) => ({
+  staff: one(staff, { fields: [passwordResets.staffId], references: [staff.id] }),
 }));
 
 export const auditRelations = relations(auditLog, ({ one }) => ({

@@ -15,8 +15,11 @@ import { buildSchedule, canTransition } from "@/lib/lending";
 import { notifyDisbursement, notifyRefund, notifyRepayment, runReminders } from "@/lib/notifications";
 import { postRepayment, RepaymentError } from "@/lib/repayments";
 import { hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/password";
+import { adminIssueReset, completePasswordReset, requestPasswordReset } from "@/lib/password-reset";
 import type { Permission } from "@/lib/permissions";
+import { normalisePhone } from "@/lib/inbox";
 import { site } from "@/lib/site";
+import { sendSms } from "@/lib/sms";
 
 export type ActionResult = { ok: boolean; message?: string; errors?: Record<string, string[] | undefined> };
 
@@ -71,6 +74,67 @@ export async function logout() {
   if (staff) await audit(db, { actorId: staff.id, action: "auth.logout", entity: "staff", entityId: staff.id });
   await destroySession();
   redirect("/console/login");
+}
+
+/* ───────────── Password recovery ───────────── */
+
+export async function forgotPassword(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const email = String(fd.get("email") ?? "").trim();
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, errors: { email: ["Enter your work email"] } };
+  try {
+    await requestPasswordReset(email);
+  } catch (err) {
+    console.error("[console] reset email failed", err);
+  }
+  return { ok: true, message: `If ${email} has a NANAM staff account, we’ve emailed a reset link. It expires in 30 minutes.` };
+}
+
+export async function resetPassword(token: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const password = String(fd.get("password") ?? "");
+  if (password !== String(fd.get("confirm") ?? "")) return { ok: false, errors: { confirm: ["Passwords don’t match"] } };
+  const r = await completePasswordReset(token, password);
+  if (!r.ok) return { ok: false, message: r.message };
+  redirect("/console/login?reset=1");
+}
+
+export async function issueResetLink(staffId: string): Promise<ActionResult> {
+  return run("staff.manage", async (actor) => {
+    const { link, ttl } = await adminIssueReset(staffId, actor.id);
+    return `Share this one-time link privately (valid ${ttl / 60} hours): ${link}`;
+  });
+}
+
+/* ───────────── Customer phone change ───────────── */
+
+export async function changeCustomerPhone(applicationId: string, _: ActionResult, fd: FormData) {
+  const r = await run("customer.update_phone", async (actor) => {
+    const data = z
+      .object({
+        phone: z.string().trim().refine((v) => /^(\+?256|0)?7\d{8}$/.test(v.replace(/[\s-]/g, "")), "Enter a valid Ugandan number"),
+        verification: z.string().trim().min(10, "Describe how you verified the client’s identity"),
+      })
+      .parse(form(fd));
+    const next = normalisePhone(data.phone);
+    const app = await db.query.applications.findFirst({ where: eq(schema.applications.id, applicationId), columns: { phone: true, fullName: true } });
+    if (!app) throw new ActionError("Application not found.");
+    if (app.phone === next) throw new ActionError("That’s already the number on file.");
+    const old = app.phone;
+    await db.transaction(async (tx) => {
+      // Move every record that belongs to this client, so the portal and reminders follow the new number.
+      await tx.update(schema.applications).set({ phone: next, phoneVerifiedAt: null, updatedAt: new Date() }).where(eq(schema.applications.phone, old));
+      await tx.update(schema.loans).set({ borrowerPhone: next }).where(eq(schema.loans.borrowerPhone, old));
+      await tx.delete(schema.customerSessions).where(eq(schema.customerSessions.phone, old));
+      await audit(tx, { actorId: actor.id, action: "customer.phone_changed", entity: "application", entityId: applicationId, detail: { from: old, to: next, verification: data.verification } });
+    });
+    after(async () => {
+      const notice = `NANAM: The phone number on your account was changed by our team on ${new Date().toLocaleDateString("en-GB")}. If you did not request this, call ${site.phones[0]} immediately.`;
+      await sendSms(old, notice).catch(() => {});
+      await sendSms(next, `NANAM: Hi ${app.fullName.split(" ")[0]}, this is now the number on your NANAM account. Sign in at nanam.ug/portal.`).catch(() => {});
+    });
+    return `Number changed to ${next}. Both numbers have been notified by SMS.`;
+  });
+  revalidatePath("/console", "layout");
+  return r;
 }
 
 /* ───────────── Applications ───────────── */

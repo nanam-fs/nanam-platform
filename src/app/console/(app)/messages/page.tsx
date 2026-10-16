@@ -8,7 +8,7 @@ import { setMessageStatus } from "../../actions";
 
 export const metadata = { title: "Messages" };
 
-const topicLabel: Record<string, string> = { "new-loan": "New loan", "existing-loan": "Existing loan", partnership: "Partnership", other: "Other" };
+const topicLabel: Record<string, string> = { "new-loan": "New loan", "existing-loan": "Existing loan", partnership: "Partnership", "phone-change": "Number change", other: "Other" };
 
 export default async function MessagesPage({ searchParams }: PageProps<"/console/messages">) {
   const staff = await requireStaff();
@@ -39,10 +39,12 @@ export default async function MessagesPage({ searchParams }: PageProps<"/console
                     {m.name} <Badge>{topicLabel[m.topic] ?? m.topic}</Badge>
                   </p>
                   <p className="mt-0.5 text-xs text-muted">
-                    <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: your message to NANAM (${m.reference})`)}`} className="hover:underline">{m.email}</a>
+                    {m.email && (
+                      <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: your message to NANAM (${m.reference})`)}`} className="hover:underline">{m.email}</a>
+                    )}
                     {m.phone && (
                       <>
-                        {" · "}
+                        {m.email && " · "}
                         <a href={`tel:${m.phone}`} className="hover:underline">{m.phone}</a>
                       </>
                     )}

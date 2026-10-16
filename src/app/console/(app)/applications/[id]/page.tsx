@@ -13,6 +13,7 @@ import { getProduct, type ProductSlug } from "@/lib/products";
 import { formatUGX } from "@/lib/utils";
 import {
   AddCollateralForm,
+  ChangePhoneForm,
   CollateralActions,
   DecideForm,
   DisburseForm,
@@ -111,7 +112,13 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
               items={[
                 ["Full name", app.fullName],
                 ["NIN", <span key="nin" className="font-mono">{app.nin}</span>],
-                ["Phone", <a key="tel" href={`tel:${app.phone}`} className="text-forest-700 hover:underline">{app.phone}</a>],
+                [
+                  "Phone",
+                  <span key="tel" className="flex flex-wrap items-center gap-2">
+                    <a href={`tel:${app.phone}`} className="text-forest-700 hover:underline">{app.phone}</a>
+                    {app.phoneVerifiedAt ? <Badge tone="good">Verified by SMS</Badge> : <Badge tone="progress">Not verified</Badge>}
+                  </span>,
+                ],
                 ["Email", app.email],
                 ["District", app.district],
                 ["Income source", app.incomeSource === "both" ? "Salary and business" : app.incomeSource === "salary" ? "Salary" : "Business"],
@@ -246,6 +253,17 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
                 }
               />
               <Check
+                ok={!!app.phoneVerifiedAt}
+                label={app.phoneVerifiedAt ? "Phone confirmed by SMS code" : "Phone not confirmed"}
+                hint={app.phoneVerifiedAt ? `Confirmed ${fmtDateTime(app.phoneVerifiedAt)}` : "Call the applicant on this number before proceeding"}
+              />
+              <Check
+                ok={false}
+                warnOnly
+                label="National ID: check against the physical card"
+                hint="NIN format is valid. Automatic NIRA verification isn’t connected; compare the ID document and photo in person."
+              />
+              <Check
                 ok={docsVerified === required.length}
                 warnOnly={docsVerified < required.length && docsMissing.length === 0}
                 label={`${docsVerified} of ${required.length} required documents verified`}
@@ -304,6 +322,13 @@ export default async function ApplicationDetail({ params }: PageProps<"/console/
           {app.decisionNote && (
             <Card title="Officer’s assessment">
               <p className="whitespace-pre-wrap text-sm">{app.decisionNote}</p>
+            </Card>
+          )}
+
+          {can(staff.role, "customer.update_phone") && (
+            <Card title="Change phone number">
+              <p className="mb-3 text-xs text-muted">Only after confirming the client’s identity (call, NIN check or office visit). Moves all their applications and loans, signs out the old number and notifies both numbers.</p>
+              <ChangePhoneForm id={app.id} />
             </Card>
           )}
 

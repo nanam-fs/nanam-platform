@@ -268,7 +268,7 @@ export function ApplyForm({
             ))}
           </dl>
           <label className="flex gap-3 rounded-2xl bg-cream p-5 text-sm text-ink/80">
-            <input type="checkbox" name="consent" required className="mt-0.5 size-4 shrink-0 accent-forest-600" />
+            <input type="checkbox" name="consent" required defaultChecked={v.consent === "on"} className="mt-0.5 size-4 shrink-0 accent-forest-600" />
             <span>
               I confirm the information is accurate and I consent to {site.name} contacting me, verifying my identity, income and
               security, and processing my personal data for this application in line with the Data Protection and Privacy Act,
@@ -276,6 +276,41 @@ export function ApplyForm({
             </span>
           </label>
           {e.consent && <p className="text-sm text-red-600">{e.consent[0]}</p>}
+
+          {state.verify && (
+            <div className="rounded-2xl border border-forest-600/30 bg-forest-50 p-5">
+              <p className="font-medium text-forest-950">Confirm your phone number</p>
+              <p className="mt-1 text-sm text-forest-900/75">
+                We’ve texted a 6-digit code to <strong>{state.verify.phone}</strong>. Enter it to submit your application.
+              </p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="flex-1">
+                  <label htmlFor="code" className="sr-only">6-digit code</label>
+                  <Input
+                    name="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    required
+                    autoFocus
+                    placeholder="123456"
+                    className="text-center font-mono tracking-[0.4em]"
+                    error={e.code}
+                  />
+                </div>
+                <button type="submit" name="resend" value="1" formNoValidate className="h-12 rounded-xl px-4 text-sm font-medium text-forest-700 hover:bg-white">
+                  Resend code
+                </button>
+              </div>
+              <p className="mt-3 text-xs text-forest-900/60">
+                Wrong number?{" "}
+                <button type="button" className="underline" onClick={() => setStep(1)}>
+                  Edit it
+                </button>
+              </p>
+            </div>
+          )}
         </fieldset>
 
         <div className="mt-10 flex items-center justify-between gap-4 border-t border-line pt-6">
@@ -293,7 +328,7 @@ export function ApplyForm({
           ) : (
             <Button type="submit" disabled={pending} className="px-7">
               {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Submit application
+              {state.verify ? "Confirm & submit" : "Verify phone & submit"}
             </Button>
           )}
         </div>

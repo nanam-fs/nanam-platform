@@ -38,7 +38,7 @@ export const contactSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters"),
   email: z.email("Please enter a valid email address"),
   phone: z.union([z.literal(""), ugPhone]),
-  topic: z.enum(["new-loan", "existing-loan", "partnership", "other"]),
+  topic: z.enum(["new-loan", "existing-loan", "partnership", "phone-change", "other"]),
   message: z.string().trim().min(10, "Please add a little more detail").max(2000, "Message cannot exceed 2000 characters"),
 });
 
@@ -59,11 +59,25 @@ export const partnerSchema = z.object({
   message: "Required for B2B partner registration.",
 });
 
+export const phoneChangeSchema = z.object({
+  fullName: z.string().trim().min(2, "Enter your full name as on your National ID"),
+  nin: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine((v) => /^C[MF][A-Z0-9]{12}$/.test(v), "Enter your 14-character NIN"),
+  oldPhone: ugPhone,
+  newPhone: ugPhone,
+  reference: z.string().trim().max(40).optional(),
+});
+
 export type FormState = {
   ok: boolean;
   reference?: string;
   /** Set after an application is saved, so the applicant can attach documents straight away. */
   upload?: { applicationId: string; token: string; product: string };
+  /** Set when the applicant must enter the SMS code sent to this number before we accept the application. */
+  verify?: { phone: string };
   message?: string;
   errors?: Record<string, string[] | undefined>;
   values?: Record<string, string>;

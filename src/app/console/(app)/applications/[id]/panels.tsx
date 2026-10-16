@@ -8,6 +8,7 @@ import { CField, CInput, CSelect, CTextarea } from "@/components/console/ui";
 import {
   addCollateral,
   addNote,
+  changeCustomerPhone,
   decide,
   disburse,
   markCollateralHeld,
@@ -218,5 +219,20 @@ export function DocumentReview({ id }: { id: string }) {
         )}
       </ActionForm>
     </div>
+  );
+}
+
+export function ChangePhoneForm({ id }: { id: string }) {
+  return (
+    <ActionForm action={changeCustomerPhone.bind(null, id)} className="space-y-2">
+      {({ errors }, pending) => (
+        <>
+          <CInput name="phone" type="tel" placeholder="New number, e.g. 0772 123 456" aria-label="New phone number" required error={errors?.phone} />
+          <CInput name="verification" placeholder="How you verified, e.g. called + matched NIN" aria-label="Verification" required error={errors?.verification} />
+          {(errors?.phone || errors?.verification) && <p className="text-xs text-red-600">{errors?.phone?.[0] ?? errors?.verification?.[0]}</p>}
+          <Submit pending={pending} variant="secondary">Change number</Submit>
+        </>
+      )}
+    </ActionForm>
   );
 }

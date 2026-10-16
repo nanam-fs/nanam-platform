@@ -38,6 +38,10 @@ export default async function PortalLogin() {
           <p className="mt-2 mb-8 text-muted">We’ll text a one-time code to your phone. No password needed.</p>
           <PortalLoginForm />
           <p className="mt-10 text-sm text-muted">
+            No longer have this number?{" "}
+            <Link href="/portal/recover" className="font-medium text-forest-700 underline">Move your account to a new number</Link>
+          </p>
+          <p className="mt-3 text-sm text-muted">
             Trouble signing in? Call <a className="text-forest-700 underline" href={tel(site.phones[0])}>{site.phones[0]}</a>.
           </p>
           <Link href="/" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-forest-700">

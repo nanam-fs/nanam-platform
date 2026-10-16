@@ -4,7 +4,8 @@ import { ActionForm, Submit } from "@/components/console/action-form";
 import { CField, CInput, CSelect } from "@/components/console/ui";
 import type { Role } from "@/db/schema";
 import { roleLabels } from "@/lib/permissions";
-import { createStaff, updateStaff } from "../../actions";
+import { ActionButton } from "@/components/console/action-form";
+import { createStaff, issueResetLink, updateStaff } from "../../actions";
 
 const roles = Object.entries(roleLabels) as [Role, string][];
 
@@ -54,5 +55,13 @@ export function StaffRowForm({ id, role, active }: { id: string; role: Role; act
         </>
       )}
     </ActionForm>
+  );
+}
+
+export function ResetLinkButton({ id }: { id: string }) {
+  return (
+    <ActionButton variant="secondary" action={() => issueResetLink(id)}>
+      Reset link
+    </ActionButton>
   );
 }

@@ -3,7 +3,7 @@ import { Badge, Card, PageHeader, Table, fmtDateTime } from "@/components/consol
 import { db, schema } from "@/db";
 import { requireStaff } from "@/lib/auth";
 import { roleLabels } from "@/lib/permissions";
-import { CreateStaffForm, StaffRowForm } from "./team-forms";
+import { CreateStaffForm, ResetLinkButton, StaffRowForm } from "./team-forms";
 
 export const metadata = { title: "Team" };
 
@@ -34,6 +34,11 @@ export default async function TeamPage() {
                   </td>
                   <td>
                     <StaffRowForm id={s.id} role={s.role} active={s.active} />
+                    {s.id !== me.id && s.active && (
+                      <div className="mt-2">
+                        <ResetLinkButton id={s.id} />
+                      </div>
+                    )}
                   </td>
                   <td className="whitespace-nowrap text-muted">{fmtDateTime(s.lastLoginAt)}</td>
                 </tr>

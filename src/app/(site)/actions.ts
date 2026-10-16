@@ -1,8 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { saveAgent, saveApplication, saveMessage } from "@/lib/inbox";
-import { applicationSchema, contactSchema, partnerSchema, type FormState } from "@/lib/schemas";
+import { normalisePhone, saveAgent, saveApplication, saveMessage } from "@/lib/inbox";
+import { checkApplicationCode, sendApplicationCode } from "@/lib/phone-verify";
+import { applicationSchema, contactSchema, partnerSchema, phoneChangeSchema, type FormState } from "@/lib/schemas";
 import { issueUploadToken } from "@/lib/upload-token";
 
 function fromForm(formData: FormData) {
@@ -40,11 +41,30 @@ async function handle<T extends z.ZodType>(
 }
 
 export async function submitApplication(_: FormState, formData: FormData) {
+  const values = fromForm(formData);
+  const parsed = applicationSchema.safeParse(values);
+  if (parsed.success && !values.company_website) {
+    const code = values.code?.trim();
+    // Step 1: text a code to the number. Step 2: accept the application only with the right code.
+    if (!code || values.resend === "1") {
+      try {
+        const sent = await sendApplicationCode(parsed.data.phone);
+        if (!sent.ok) return { ok: false, message: sent.message, values, verify: { phone: normalisePhone(parsed.data.phone) } };
+      } catch (err) {
+        console.error("[apply] could not send code", err);
+        return { ok: false, message: "We couldn’t text a code to that number. Check it and try again, or call us.", values };
+      }
+      return { ok: false, values, verify: { phone: normalisePhone(parsed.data.phone) } };
+    }
+    if (!(await checkApplicationCode(parsed.data.phone, code))) {
+      return { ok: false, message: "That code is incorrect or has expired.", values, verify: { phone: normalisePhone(parsed.data.phone) }, errors: { code: ["Incorrect code"] } };
+    }
+  }
   return handle(
     applicationSchema,
     formData,
     async (data) => {
-      const { reference, id } = await saveApplication(data);
+      const { reference, id } = await saveApplication(data, new Date());
       const token = issueUploadToken(id);
       return { reference, upload: token ? { applicationId: id, token, product: data.product } : undefined };
     },
@@ -54,6 +74,21 @@ export async function submitApplication(_: FormState, formData: FormData) {
 
 export async function submitContact(_: FormState, formData: FormData) {
   return handle(contactSchema, formData, saveMessage, "Thanks for reaching out. We’ll get back to you shortly.");
+}
+
+export async function submitPhoneChange(_: FormState, formData: FormData) {
+  return handle(
+    phoneChangeSchema,
+    formData,
+    (d) =>
+      saveMessage({
+        name: d.fullName,
+        phone: d.newPhone,
+        topic: "phone-change",
+        message: `Number change request.\nName: ${d.fullName}\nNIN: ${d.nin}\nOld number: ${d.oldPhone}\nNew number: ${d.newPhone}\nLoan/application ref: ${d.reference || "not given"}\n\nVerify identity before changing the number (Application → Change phone number).`,
+      }),
+    "Request received. A NANAM officer will call your new number to confirm your identity before making the change.",
+  );
 }
 
 export async function submitPartner(_: FormState, formData: FormData) {

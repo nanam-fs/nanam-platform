@@ -17,6 +17,7 @@ const matrix = {
   "agent.manage": ["manager", "admin"],
   "commission.pay": ["finance", "admin"],
   "refund.approve": ["manager", "admin"],
+  "customer.update_phone": ["manager", "admin"],
   "refund.pay": ["finance", "admin"],
   "message.manage": ["officer", "manager", "admin"],
   "reminders.run": ["finance", "manager", "admin"],

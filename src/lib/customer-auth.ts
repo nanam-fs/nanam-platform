@@ -44,7 +44,7 @@ export async function requestOtp(rawPhone: string): Promise<OtpRequestResult> {
   const [{ n }] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(schema.otpCodes)
-    .where(and(eq(schema.otpCodes.phone, phone), gt(schema.otpCodes.createdAt, new Date(Date.now() - 15 * 60_000))));
+    .where(and(eq(schema.otpCodes.phone, phone), eq(schema.otpCodes.purpose, "login"), gt(schema.otpCodes.createdAt, new Date(Date.now() - 15 * 60_000))));
   if (Number(n) >= OTP_MAX_PER_15_MIN) return { ok: false, message: "Too many codes requested. Please wait 15 minutes and try again." };
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
@@ -67,7 +67,7 @@ export async function verifyOtp(rawPhone: string, rawCode: string): Promise<{ ok
   if (code.length !== 6) return fail;
 
   const otp = await db.query.otpCodes.findFirst({
-    where: and(eq(schema.otpCodes.phone, phone), isNull(schema.otpCodes.consumedAt), gt(schema.otpCodes.expiresAt, new Date())),
+    where: and(eq(schema.otpCodes.phone, phone), eq(schema.otpCodes.purpose, "login"), isNull(schema.otpCodes.consumedAt), gt(schema.otpCodes.expiresAt, new Date())),
     orderBy: desc(schema.otpCodes.createdAt),
   });
   if (!otp || otp.attempts >= OTP_MAX_ATTEMPTS) return fail;
