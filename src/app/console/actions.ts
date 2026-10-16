@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { headers } from "next/headers";
@@ -677,4 +677,47 @@ export async function labStatus(req: LabRequest) {
   const p = providerByName(req.provider);
   if (!p || p.mode === "live") return { status: "failed" as const, reason: "Provider unavailable" };
   return p.getStatus({ providerRef: req.providerRef, createdAt: new Date(req.createdAt), payerMsisdn: req.msisdn });
+}
+
+/* ───────────── Command palette search ───────────── */
+
+export type SearchHit = { kind: "application" | "loan" | "agent"; id: string; title: string; subtitle: string; href: string };
+
+export async function searchConsole(query: string): Promise<SearchHit[]> {
+  const staff = await getStaff();
+  const q = query.trim();
+  if (!staff || q.length < 2) return [];
+  const like = `%${q.replace(/[%_]/g, "")}%`;
+  const digits = q.replace(/\D/g, "");
+  const phoneLike = digits.length >= 4 ? `%${digits.slice(-9)}%` : null;
+  const [apps, loans, agents] = await Promise.all([
+    db.query.applications.findMany({
+      where: or(
+        ilike(schema.applications.fullName, like),
+        ilike(schema.applications.reference, like),
+        ilike(schema.applications.nin, like),
+        ...(phoneLike ? [ilike(schema.applications.phone, phoneLike)] : []),
+      ),
+      columns: { id: true, fullName: true, reference: true, status: true, amount: true },
+      orderBy: desc(schema.applications.createdAt),
+      limit: 5,
+    }),
+    db.query.loans.findMany({
+      where: or(ilike(schema.loans.borrowerName, like), ilike(schema.loans.reference, like), ...(phoneLike ? [ilike(schema.loans.borrowerPhone, phoneLike)] : [])),
+      columns: { id: true, borrowerName: true, reference: true, status: true, principal: true },
+      orderBy: desc(schema.loans.disbursedAt),
+      limit: 5,
+    }),
+    db.query.agents.findMany({
+      where: or(ilike(schema.agents.fullName, like), ilike(schema.agents.referralCode, like), ilike(schema.agents.organisation, like)),
+      columns: { id: true, fullName: true, status: true, referralCode: true },
+      limit: 3,
+    }),
+  ]);
+  const ugx = (n: number) => `UGX ${n.toLocaleString("en-UG")}`;
+  return [
+    ...loans.map((l) => ({ kind: "loan" as const, id: l.id, title: l.borrowerName, subtitle: `Loan ${l.reference} · ${ugx(l.principal)} · ${l.status}`, href: `/console/loans/${l.id}` })),
+    ...apps.map((a) => ({ kind: "application" as const, id: a.id, title: a.fullName, subtitle: `Application ${a.reference} · ${ugx(a.amount)} · ${a.status}`, href: `/console/applications/${a.id}` })),
+    ...agents.map((a) => ({ kind: "agent" as const, id: a.id, title: a.fullName, subtitle: `Agent · ${a.status}${a.referralCode ? ` · ${a.referralCode}` : ""}`, href: `/console/agents?status=${a.status}` })),
+  ];
 }

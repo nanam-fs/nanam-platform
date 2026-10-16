@@ -41,6 +41,8 @@ Stop the dev server before running any `db:*` command. The local database is a s
 | `AIRTEL_BASE_URL`, `AIRTEL_CLIENT_ID`, `AIRTEL_CLIENT_SECRET` | Airtel Money Collections |
 | `BLOB_READ_WRITE_TOKEN` or a connected **private** Blob store (`BLOB_STORE_ID`) | Client documents (`vercel blob create-store nanam-docs --access private`) |
 | `UPLOAD_TOKEN_SECRET` (32+ random chars) | Signs the 24-hour links that let applicants upload documents right after applying |
+| `SMILEID_PARTNER_ID`, `SMILEID_API_KEY`, `SMILEID_ENV` (`sandbox`/`production`) | Instant identity verification (Smile ID Document Verification) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Staff password-reset emails |
 | `CRON_SECRET` | Protects the cron routes (`vercel.ts`: payment sweep every 15 min, reminders daily 09:00 EAT) |
 
 Without SMS credentials the portal can't send codes; without a network's Mobile Money credentials, that network is hidden. Nothing silently falls back to test mode in production.
@@ -78,6 +80,32 @@ Register callback URLs with the providers: `https://nanam.ug/api/payments/mtn/ca
 | Mobile Money | MTN MoMo or Airtel Money prompt on the customer's phone. Pay next instalment, overdue amount, full payoff or any amount |
 
 **Payment safety:** money is posted only after the provider confirms it. Callbacks only identify which payment to re-check, so the outcome is always re-queried from the provider. Posting is idempotent (one transaction claims the request and posts it). Duplicate transaction IDs are rejected. Overpayments are posted up to the amount owed and the excess is flagged for refund in the console. A sweep re-checks anything unresolved.
+
+## Identity verification
+
+After applying, the applicant photographs their National ID (front and back) and takes a guided selfie. On a computer a QR code hands off to their phone and the result appears live; on a phone it starts directly. Photos are checked for exposure before upload, stored privately, and submitted to **Smile ID Document Verification** (V3 API, signed webhooks, sweep cron). Liveness frames are not stored by NANAM.
+
+Decision (`src/lib/kyc-rules.ts`, unit-tested): provider *clear* + NIN and name match → **verified in seconds**; *attention* or a mismatch → officer review; *block* → rejected; *error* → retake. Officers can review, override, text a verification link, or verify walk-ins in person. **Disbursement requires a verified identity.**
+
+Test mode uses a simulator mirroring Smile ID's sandbox: surname `Twinley` → face mismatch, `Masquero` → spoof, `Xeroxley` → review, `Blurton` → retake, given name containing `Mismatch` → NIN mismatch; anyone else verifies. In Smile ID's real sandbox, use their documented test identities (e.g. Amina Fatou Clearwater). To confirm on the first sandbox run: how Smile ID wants the nested `consent`/`user_details` multipart fields encoded (we send JSON strings).
+
+## Mobile Money sandboxes
+
+- **MTN:** subscribe to Collections at momodeveloper.mtn.com, then `MTN_MOMO_SUBSCRIPTION_KEY=… npm run momo:mtn-sandbox` creates the sandbox API user/key in `.env.local`. Sandbox amounts are EUR; magic payer numbers (e.g. 46733123450 failed, …453 stays pending) are preset in the lab.
+- **Airtel:** create an app at developers.airtel.ug, set `AIRTEL_CLIENT_ID`/`AIRTEL_CLIENT_SECRET` (staging host `openapiuat.airtel.ug`).
+- **Console → Payments lab** (finance/admin) tests each network end to end with live status and raw responses, never touching loans and refusing live mode.
+
+## Website assistant & WhatsApp
+
+The assistant needs no API and costs nothing: it runs in the visitor's browser and answers only from verified NANAM content (`src/lib/assistant/`), computes repayment estimates with the real loan maths, understands common Luganda words, refuses PINs/ID numbers, and hands off to WhatsApp. Add or edit answers in `knowledge.ts`; `npm test` checks behaviour. The dock hides over the hero and footer so it never covers content.
+
+## Legal pages
+
+Draft privacy policy, terms, key loan facts, complaints procedure, fraud & security and cookie notice live in `src/lib/legal.ts` and show a "draft for legal review" banner (`LEGAL_IS_DRAFT`). Items in [brackets] must be completed by NANAM, not guessed.
+
+## Design
+
+Display type **Cabinet Grotesk**, UI type **Switzer** (Fontshare, ITF Free Font License: commercial use allowed, files must not be modified or redistributed, so **keep this repository private**). Location photography from Unsplash (credited in the footer; people pictured are not clients). Animated icons and motion use Motion (`LazyMotion`, reduced-motion aware).
 
 ## Refunds — `/console/refunds`
 
@@ -143,5 +171,6 @@ Reminders run daily at 09:00 Kampala time (and on demand from **Console → SMS 
 ## Roadmap
 
 - Automated refund payouts via MTN/Airtel disbursement APIs.
+- Real client photography and testimonials (with consent) to replace stock location photos.
 - Agent self-service dashboard (referrals, commission statements).
 - Privacy policy and loan terms pages (legal to supply); UMRA licence number in the footer.

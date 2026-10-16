@@ -177,3 +177,58 @@ export async function collectionsWorklist(limit = 8) {
     limit ${limit}
   `);
 }
+
+/** Disbursed and collected per week (Kampala time), oldest first, including empty weeks. */
+export async function weeklySeries(weeks = 26) {
+  const rows = await many<{ week: string; disbursed: number; collected: number; loans: number }>(sql`
+    with w as (
+      select generate_series(
+        date_trunc('week', now() at time zone 'Africa/Kampala') - (${weeks - 1} * interval '1 week'),
+        date_trunc('week', now() at time zone 'Africa/Kampala'),
+        interval '1 week'
+      )::date as week
+    )
+    select to_char(w.week, 'YYYY-MM-DD') as week,
+      coalesce((select sum(principal) from loans l where date_trunc('week', l.disbursed_at at time zone 'Africa/Kampala')::date = w.week), 0)::float8 as disbursed,
+      coalesce((select count(*) from loans l where date_trunc('week', l.disbursed_at at time zone 'Africa/Kampala')::date = w.week), 0)::int as loans,
+      coalesce((select sum(amount) from repayments r where date_trunc('week', r.received_at at time zone 'Africa/Kampala')::date = w.week), 0)::float8 as collected
+    from w order by w.week
+  `);
+  return rows.map((r) => ({ week: r.week, disbursed: Number(r.disbursed), collected: Number(r.collected), loans: Number(r.loans) }));
+}
+
+/** This month versus last month, for KPI deltas. */
+export async function monthOverMonth() {
+  const row = await one<{ d_now: number; d_prev: number; c_now: number; c_prev: number; n_now: number; n_prev: number }>(sql`
+    with b as (select date_trunc('month', now() at time zone 'Africa/Kampala') as m)
+    select
+      (select coalesce(sum(principal),0) from loans, b where disbursed_at at time zone 'Africa/Kampala' >= b.m)::float8 as d_now,
+      (select coalesce(sum(principal),0) from loans, b where disbursed_at at time zone 'Africa/Kampala' >= b.m - interval '1 month' and disbursed_at at time zone 'Africa/Kampala' < b.m)::float8 as d_prev,
+      (select coalesce(sum(amount),0) from repayments, b where received_at at time zone 'Africa/Kampala' >= b.m)::float8 as c_now,
+      (select coalesce(sum(amount),0) from repayments, b where received_at at time zone 'Africa/Kampala' >= b.m - interval '1 month' and received_at at time zone 'Africa/Kampala' < b.m)::float8 as c_prev,
+      (select count(*) from applications, b where created_at at time zone 'Africa/Kampala' >= b.m)::int as n_now,
+      (select count(*) from applications, b where created_at at time zone 'Africa/Kampala' >= b.m - interval '1 month' and created_at at time zone 'Africa/Kampala' < b.m)::int as n_prev
+  `);
+  const n = (v: unknown) => Number(v ?? 0);
+  return {
+    disbursed: { now: n(row?.d_now), prev: n(row?.d_prev) },
+    collected: { now: n(row?.c_now), prev: n(row?.c_prev) },
+    applications: { now: n(row?.n_now), prev: n(row?.n_prev) },
+  };
+}
+
+/** Everything waiting on someone, by queue. */
+export async function workCounts() {
+  const row = await one<Record<string, number>>(sql`
+    select
+      (select count(*) from applications where status = 'new')::int as new,
+      (select count(*) from applications where status = 'reviewing')::int as reviewing,
+      (select count(*) from applications where status = 'recommended')::int as recommended,
+      (select count(*) from applications where status = 'approved')::int as approved,
+      (select count(*) from applications where kyc_status = 'review')::int as kyc_review,
+      (select count(*) from refunds where status = 'pending_approval')::int as refunds_approve,
+      (select count(*) from refunds where status = 'approved')::int as refunds_pay,
+      (select count(*) from documents where status = 'pending' and kind not in ('id_front','id_back','selfie'))::int as docs_pending
+  `);
+  return Object.fromEntries(Object.entries(row ?? {}).map(([k, v]) => [k, Number(v)])) as Record<string, number>;
+}
