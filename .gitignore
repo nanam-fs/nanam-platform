@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local database
 /.data
+
+# Fontshare fonts: licence forbids publishing them in a repo; fetched by scripts/fonts.mts
+/src/app/fonts/*.woff2

@@ -105,7 +105,7 @@ Draft privacy policy, terms, key loan facts, complaints procedure, fraud & secur
 
 ## Design
 
-Display type **Cabinet Grotesk**, UI type **Switzer** (Fontshare, ITF Free Font License: commercial use allowed, files must not be modified or redistributed, so **keep this repository private**). Location photography from Unsplash (credited in the footer; people pictured are not clients). Animated icons and motion use Motion (`LazyMotion`, reduced-motion aware).
+Display type **Cabinet Grotesk**, UI type **Switzer** (Fontshare, ITF Free Font License: commercial use allowed, files must not be modified or published in a repository, so they are gitignored and downloaded from Fontshare by `npm run fonts`, which runs automatically before `dev` and `build`). Location photography from Unsplash (credited in the footer; people pictured are not clients). Animated icons and motion use Motion (`LazyMotion`, reduced-motion aware).
 
 ## Refunds — `/console/refunds`
 

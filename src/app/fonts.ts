@@ -1,7 +1,8 @@
 import localFont from "next/font/local";
 
 // Fontshare (Indian Type Foundry), ITF Free Font License: free commercial use, self-hosted, files unmodified.
-// The licence forbids redistributing the font files, so keep this repository private.
+// The licence forbids publishing the font files in a repository: they are gitignored and fetched
+// from Fontshare by scripts/fonts.mts (runs automatically before `npm run dev` and `npm run build`).
 export const switzer = localFont({
   src: [
     { path: "./fonts/Switzer-Variable.woff2", weight: "100 900", style: "normal" },
