@@ -7,12 +7,14 @@ import { ArrowUpRight, Menu, X } from "lucide-react";
 import { nav } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
+import { usePortalSession } from "./use-portal-session";
 import { ButtonLink } from "./ui";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const portal = usePortalSession();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -55,9 +57,22 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <ButtonLink href="/portal" variant={solid ? "ghost" : "light"} className={cn(!solid && "border-transparent")}>
-            Sign in
-          </ButtonLink>
+          {portal?.signedIn ? (
+            <Link
+              href="/portal"
+              className={cn(
+                "flex h-11 items-center gap-2.5 rounded-full py-1 pr-4 pl-1 text-sm font-medium transition-colors",
+                solid ? "text-forest-800 hover:bg-forest-50" : "text-white hover:bg-white/10",
+              )}
+            >
+              <span className="grid size-8 place-items-center rounded-full bg-peach-400 text-sm font-semibold text-forest-950">{(portal.firstName ?? "M")[0]}</span>
+              My account
+            </Link>
+          ) : (
+            <ButtonLink href="/portal/login" variant={solid ? "ghost" : "light"} className={cn("transition-opacity", !solid && "border-transparent", !portal && "opacity-0")}>
+              Sign in
+            </ButtonLink>
+          )}
           <ButtonLink href="/apply" variant={solid ? "primary" : "lime"}>
             Apply now <ArrowUpRight className="size-4" />
           </ButtonLink>
@@ -84,8 +99,8 @@ export function SiteHeader() {
             ))}
           </nav>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <ButtonLink href="/portal" variant="outline">
-              Sign in
+            <ButtonLink href={portal?.signedIn ? "/portal" : "/portal/login"} variant="outline">
+              {portal?.signedIn ? "My account" : "Sign in"}
             </ButtonLink>
             <ButtonLink href="/apply">Apply now</ButtonLink>
           </div>
