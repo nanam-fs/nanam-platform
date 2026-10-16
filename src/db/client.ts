@@ -19,6 +19,10 @@ export function createDb(): { db: DB; driver: "postgres" | "pglite"; close: () =
     const client = postgres(url, { max: 5, prepare: false });
     return { db: drizzlePostgres(client, { schema }), driver: "postgres", close: () => client.end() };
   }
+  if (process.env.VERCEL) {
+    // Serverless functions have no writable disk for the embedded database.
+    throw new Error("DATABASE_URL is not set. Connect a Postgres database (Vercel → Storage → Neon) to this project, then redeploy.");
+  }
   const dir = process.env.PGLITE_DIR ?? ".data/pglite";
   mkdirSync(dir, { recursive: true });
   const client = new PGlite(dir);

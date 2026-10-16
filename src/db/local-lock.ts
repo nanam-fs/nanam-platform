@@ -40,5 +40,6 @@ export function assertNoServerRunning() {
 
 /** Where local seed passwords are written: beside the database they belong to. */
 export function credentialsPath() {
+  if (process.env.DATABASE_URL) return ".data/production-credentials.txt"; // never overwrite the local dev logins
   return process.env.PGLITE_DIR ? `${dir()}.credentials.txt` : ".data/seed-credentials.txt";
 }
