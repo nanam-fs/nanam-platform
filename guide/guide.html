@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NANAM Digital Platform: Pre-launch Guide</title>
+<style>
+@font-face { font-family: "Cabinet"; src: url("{{FONTS}}/CabinetGrotesk-Variable.woff2") format("woff2"); font-weight: 100 900; }
+@font-face { font-family: "Switzer"; src: url("{{FONTS}}/Switzer-Variable.woff2") format("woff2"); font-weight: 100 900; }
+@page { size: 297mm 210mm; margin: 0; }
+:root {
+  --forest-950: #031a0f; --forest-900: #052a18; --forest-800: #03381f; --forest-700: #004826; --forest-600: #00572d; --forest-500: #137545;
+  --forest-100: #d5eadd; --forest-50: #eef6f1; --lime-300: #c3e08d; --lime-400: #a6d15b; --lime-500: #8bc136;
+  --peach-400: #feb58a; --peach-200: #ffe1cd; --cream: #f6f4ef; --sand: #ece7dc; --line: #e2ddd1; --ink: #14201a; --muted: #5d6b63;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #fff; }
+body { font-family: "Switzer", system-ui, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-feature-settings: "ss01", "cv11"; }
+.page { width: 297mm; height: 210mm; position: relative; overflow: hidden; page-break-after: always; break-after: page; padding: 15mm 17mm 13mm; background: var(--cream); display: flex; flex-direction: column; }
+.page:last-child { page-break-after: auto; break-after: auto; }
+.dark { background: radial-gradient(120% 90% at 85% 10%, #0b3a21 0%, var(--forest-950) 55%); color: #fff; }
+.white { background: #fff; }
+h1, h2, h3, .display { font-family: "Cabinet", "Switzer", sans-serif; font-weight: 750; letter-spacing: -0.035em; line-height: 1.02; }
+h2 { font-size: 30pt; color: var(--forest-950); }
+.dark h2 { color: #fff; }
+h2 em, h1 em { font-style: normal; color: var(--forest-500); }
+.dark h2 em, .dark h1 em { color: var(--lime-400); }
+h3 { font-size: 13pt; color: var(--forest-950); letter-spacing: -0.02em; line-height: 1.15; }
+.dark h3 { color: #fff; }
+p { color: var(--muted); }
+.dark p { color: rgba(255,255,255,.68); }
+.eyebrow { display: flex; align-items: center; gap: 8px; font-size: 9pt; font-weight: 500; color: var(--forest-600); margin-bottom: 4mm; }
+.eyebrow::before { content: ""; width: 9mm; height: 1px; background: currentColor; opacity: .6; }
+.dark .eyebrow { color: var(--lime-400); }
+.lead { font-size: 12pt; line-height: 1.5; max-width: 125mm; margin-top: 4mm; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm; }
+.folio { position: absolute; left: 17mm; right: 17mm; bottom: 7mm; display: flex; justify-content: space-between; font-size: 7.5pt; color: var(--muted); letter-spacing: .02em; }
+.dark .folio { color: rgba(255,255,255,.4); }
+.folio b { font-weight: 600; color: var(--forest-700); }
+.dark .folio b { color: var(--lime-400); }
+.grow { flex: 1; min-height: 0; }
+.row { display: flex; gap: 8mm; }
+.col { display: flex; flex-direction: column; gap: 4mm; }
+
+/* Frames */
+.browser { border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 18px 40px -18px rgba(3,26,15,.45), 0 0 0 1px rgba(3,26,15,.08); }
+.browser .bar { height: 18px; background: #efece5; display: flex; align-items: center; gap: 4px; padding: 0 8px; }
+.browser .bar i { width: 6px; height: 6px; border-radius: 50%; background: #d6d1c5; display: block; }
+.browser .bar span { margin-left: 10px; font-size: 6.5pt; color: #8a948e; background: #fff; border-radius: 4px; padding: 1px 10px; }
+.browser img { display: block; width: 100%; }
+.dark .browser { box-shadow: 0 24px 60px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08); }
+.phone { border-radius: 26px; padding: 6px; background: #0b130e; box-shadow: 0 20px 40px -16px rgba(3,26,15,.55); flex-shrink: 0; }
+.phone img { display: block; width: 100%; border-radius: 21px; }
+.crop { overflow: hidden; }
+.crop img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 0; }
+.cap { font-size: 8pt; color: var(--muted); margin-top: 2.5mm; }
+.dark .cap { color: rgba(255,255,255,.5); }
+
+/* Lists & chips */
+ul.ticks { list-style: none; display: grid; gap: 2.4mm; }
+ul.ticks li { position: relative; padding-left: 6.5mm; color: var(--ink); font-size: 10pt; line-height: 1.45; }
+ul.ticks li::before { content: ""; position: absolute; left: 0; top: 1.6mm; width: 3.4mm; height: 1.8mm; border-left: 1.6px solid var(--forest-500); border-bottom: 1.6px solid var(--forest-500); transform: rotate(-45deg); }
+.dark ul.ticks li { color: rgba(255,255,255,.88); }
+.dark ul.ticks li::before { border-color: var(--lime-400); }
+ul.ticks li b { color: var(--forest-950); font-weight: 600; }
+.dark ul.ticks li b { color: #fff; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1.2mm 3.2mm; font-size: 8pt; font-weight: 500; background: var(--forest-50); color: var(--forest-700); white-space: nowrap; }
+.chip.lime { background: var(--lime-400); color: var(--forest-950); }
+.chip.peach { background: var(--peach-200); color: #7a3b12; }
+.chip.dim { background: rgba(255,255,255,.08); color: rgba(255,255,255,.8); }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 6mm; }
+.dark .card { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); }
+.num { font-family: "Cabinet", sans-serif; font-weight: 750; letter-spacing: -0.04em; font-size: 30pt; line-height: 1; color: var(--forest-950); }
+.dark .num { color: #fff; }
+.num small { font-size: 13pt; }
+kbd, code, .mono { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 8.6pt; }
+code { background: var(--sand); padding: .2mm 1.4mm; border-radius: 4px; color: var(--forest-900); }
+.dark code { background: rgba(255,255,255,.1); color: #fff; }
+
+/* Cover */
+.cover { padding: 0; }
+.cover .inner { position: relative; z-index: 2; padding: 17mm 18mm; height: 100%; display: flex; flex-direction: column; }
+.cover h1 { font-size: 50pt; color: #fff; margin-top: 16mm; max-width: 150mm; }
+.cover .shot { position: absolute; right: -28mm; top: 34mm; width: 178mm; transform: rotate(-4deg); z-index: 1; }
+.cover .mshot { position: absolute; right: 118mm; top: 104mm; width: 46mm; transform: rotate(3deg); z-index: 3; }
+.cover .meta { margin-top: auto; display: flex; gap: 10mm; font-size: 8.5pt; color: rgba(255,255,255,.6); }
+.cover .meta b { display: block; color: #fff; font-weight: 600; font-size: 9.5pt; }
+.glow { position: absolute; width: 160mm; height: 160mm; border-radius: 50%; background: radial-gradient(circle, rgba(139,193,54,.22), transparent 60%); right: -40mm; bottom: -70mm; }
+
+/* Steps */
+.steps { counter-reset: s; display: grid; gap: 3.2mm; }
+.steps li { list-style: none; counter-increment: s; position: relative; padding-left: 10mm; font-size: 9.8pt; line-height: 1.45; color: var(--ink); }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: -.3mm; width: 6.4mm; height: 6.4mm; border-radius: 50%; background: var(--forest-950); color: var(--lime-400); font-size: 8pt; font-weight: 600; display: grid; place-items: center; }
+.dark .steps li { color: rgba(255,255,255,.88); }
+.dark .steps li::before { background: var(--lime-400); color: var(--forest-950); }
+.steps li b { color: var(--forest-950); }
+.dark .steps li b { color: #fff; }
+
+table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+th { text-align: left; font-weight: 600; font-size: 7.6pt; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 2mm 3mm; border-bottom: 1px solid var(--line); }
+td { padding: 2.4mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink); }
+tr:last-child td { border-bottom: 0; }
+.status { display: inline-flex; align-items: center; gap: 4px; font-size: 7.8pt; font-weight: 600; border-radius: 999px; padding: .6mm 2.4mm; white-space: nowrap; }
+.s-live { background: var(--forest-600); color: #fff; }
+.s-demo { background: var(--lime-400); color: var(--forest-950); }
+.s-need { background: var(--peach-200); color: #7a3b12; }
+.icon { width: 9mm; height: 9mm; border-radius: 8px; background: var(--forest-950); display: grid; place-items: center; color: var(--lime-400); flex-shrink: 0; }
+.icon svg { width: 4.6mm; height: 4.6mm; }
+.pill-note { border: 1px dashed rgba(0,87,45,.35); background: var(--forest-50); border-radius: 12px; padding: 3.4mm 4.5mm; font-size: 9pt; color: var(--forest-800); }
+.pill-note b { color: var(--forest-950); }
+.dark .pill-note { background: rgba(166,209,91,.1); border-color: rgba(166,209,91,.4); color: rgba(255,255,255,.85); }
+.dark .pill-note b { color: var(--lime-400); }
+a { color: inherit; }
+.link { color: var(--forest-600); font-weight: 600; text-decoration: none; border-bottom: 1px solid rgba(0,87,45,.3); }
+.dark .link { color: var(--lime-400); border-color: rgba(166,209,91,.4); }
+</style>
+</head>
+<body>
+
+<!-- 1 · Cover -->
+<section class="page dark cover">
+  <div class="glow"></div>
+  <div class="shot browser"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}</span></div><img src="img/w-home-hero.jpg"></div>
+  <div class="mshot phone"><img src="img/m-portal-loan.jpg"></div>
+  <div class="inner">
+    <img src="{{BRAND}}/logo-inverse.svg" style="height: 11mm; width: auto; align-self: flex-start;">
+    <h1>The NANAM digital platform, <em>ready to try.</em></h1>
+    <p class="lead" style="max-width: 112mm;">A guided tour of the new website, customer portal and staff console: what each part does, how to test it yourself today, and what NANAM can switch on before full launch.</p>
+    <div style="margin-top: 7mm; display: flex; gap: 2mm; flex-wrap: wrap; max-width: 120mm;">
+      <span class="chip lime">Website</span><span class="chip dim">Customer portal</span><span class="chip dim">Staff console</span><span class="chip dim">Mobile Money</span><span class="chip dim">Instant ID checks</span>
+    </div>
+    <div class="meta">
+      <div><b>Prepared for</b>NANAM Financial Services Limited</div>
+      <div><b>Edition</b>Pre-launch demo · October 2026</div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · At a glance -->
+<section class="page white">
+  <div class="eyebrow">At a glance</div>
+  <div class="top">
+    <div>
+      <h2>One platform for the whole loan, <em>from first click to final repayment.</em></h2>
+      <p class="lead">Built specifically for NANAM's four secured loan products and the way a licensed money lender in Uganda works: collateral first, transparent pricing, and controls at every step.</p>
+    </div>
+  </div>
+  <div class="row grow" style="margin-top: 10mm; align-items: stretch;">
+    <div class="card col" style="flex:1">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
+      <h3>Website</h3>
+      <ul class="ticks">
+        <li>Live loan calculator with the real pricing</li>
+        <li>Online application with phone verification</li>
+        <li>Document upload and an instant ID check</li>
+        <li>24/7 assistant plus WhatsApp hand-off</li>
+        <li>Privacy, terms, loan terms and complaints pages</li>
+      </ul>
+    </div>
+    <div class="card col" style="flex:1">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></div>
+      <h3>Customer portal</h3>
+      <ul class="ticks">
+        <li>Sign in with a code by SMS, no passwords</li>
+        <li>Balance, next payment, schedule and history</li>
+        <li>Pay with MTN MoMo or Airtel Money</li>
+        <li>Statement any time, ready to save as PDF</li>
+        <li>Track an application and upload documents</li>
+      </ul>
+    </div>
+    <div class="card col" style="flex:1">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></div>
+      <h3>Staff console</h3>
+      <ul class="ticks">
+        <li>Portfolio dashboard with PAR 30 and aging</li>
+        <li>Review → recommend → approve → disburse</li>
+        <li>Loan book, collections, collateral register</li>
+        <li>Automatic SMS reminders and receipts</li>
+        <li>Roles, audit log, refunds and agents</li>
+      </ul>
+    </div>
+  </div>
+  <div class="row" style="margin-top: 8mm; justify-content: space-between;">
+    <div><div class="num">4</div><p style="font-size:8.5pt">loan products, priced<br>the same transparent way</p></div>
+    <div><div class="num">4</div><p style="font-size:8.5pt">staff roles with<br>maker-checker controls</p></div>
+    <div><div class="num">2</div><p style="font-size:8.5pt">Mobile Money networks:<br>MTN MoMo and Airtel</p></div>
+    <div><div class="num">5</div><p style="font-size:8.5pt">automatic SMS types, each<br>fits one 160-character SMS</p></div>
+    <div><div class="num">0<small> UGX</small></div><p style="font-size:8.5pt">monthly cost for the<br>website assistant</p></div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Digital platform guide</span><span>2</span></div>
+</section>
+
+<!-- 3 · Website -->
+<section class="page">
+  <div class="row grow">
+    <div style="width: 92mm;" class="col">
+      <div class="eyebrow">01 · Website</div>
+      <h2>A front door that <em>earns trust</em> in seconds.</h2>
+      <p class="lead" style="font-size: 10.5pt;">The first thing a borrower sees is what they can get and what it costs. Every figure comes from the same loan maths the console uses.</p>
+      <ul class="ticks" style="margin-top: 3mm;">
+        <li><b>Live estimate on the homepage</b>: product, amount and term give the monthly instalment, the 2% fee, the amount received and the total to repay.</li>
+        <li><b>Product pages</b> for Logbook, Business, Asset and Contract Finance, each with its own documents checklist.</li>
+        <li><b>Built for phones first</b>: tested at every common phone width, from 320 to 430 px.</li>
+        <li><b>The UMRA licence</b> and the 2.8% legal maximum are stated plainly.</li>
+      </ul>
+    </div>
+    <div class="grow" style="position: relative;">
+      <div class="browser" style="position:absolute; left: 4mm; right: 16mm; top: 16mm;"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}</span></div><img src="img/w-home-hero.jpg"></div>
+      <div class="phone" style="position:absolute; right: 0; top: 60mm; width: 50mm;"><img src="img/m-home.jpg"></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Website</span><span>3</span></div>
+</section>
+
+<!-- 4 · Transparency & products -->
+<section class="page white">
+  <div class="eyebrow">01 · Website</div>
+  <div class="top">
+    <h2 style="max-width: 150mm;">Clear pricing and products, <em>before anyone applies.</em></h2>
+    <p style="max-width: 90mm; margin-top: 2mm;">Fewer "how much will I pay?" calls, and better-prepared applicants arriving with the right documents.</p>
+  </div>
+  <div class="row grow" style="margin-top: 7mm;">
+    <div style="flex: 1;"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}</span></div><img src="img/s-transparency.jpg"></div><p class="cap">Itemised sample offer: every instalment, the fee and "hidden charges: UGX 0".</p></div>
+    <div style="flex: 1;"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/loans/logbook</span></div><img src="img/w-logbook-2.jpg"></div><p class="cap">Each product page lists benefits, exactly what's needed, who it suits, and FAQs.</p></div>
+  </div>
+  <div class="row" style="margin-top: 6mm; gap: 4mm;">
+    <div class="card" style="flex:1; padding: 4.5mm 5mm;"><h3 style="font-size: 11pt;">Logbook Loan</h3><p style="font-size: 8.5pt; margin-top: 1mm;">Against a motor vehicle logbook. The client keeps driving.</p></div>
+    <div class="card" style="flex:1; padding: 4.5mm 5mm;"><h3 style="font-size: 11pt;">Business Loan</h3><p style="font-size: 8.5pt; margin-top: 1mm;">Working capital against a land title or motor vehicle.</p></div>
+    <div class="card" style="flex:1; padding: 4.5mm 5mm;"><h3 style="font-size: 11pt;">Asset Finance</h3><p style="font-size: 8.5pt; margin-top: 1mm;">Buy land or a vehicle with 50% down.</p></div>
+    <div class="card" style="flex:1; padding: 4.5mm 5mm;"><h3 style="font-size: 11pt;">Contract Finance</h3><p style="font-size: 8.5pt; margin-top: 1mm;">A confirmed contract or LPO plus a land title or logbook.</p></div>
+    <div class="card" style="flex:1; padding: 4.5mm 5mm; background: var(--forest-950); border-color: var(--forest-950);"><h3 style="font-size: 11pt; color:#fff;">All four</h3><p style="font-size: 8.5pt; margin-top: 1mm; color: rgba(255,255,255,.7);">UGX 2M–100M · 1–6 months · 2.8%/month · 2% fee</p></div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Website</span><span>4</span></div>
+</section>
+
+<!-- 5 · Apply -->
+<section class="page">
+  <div class="eyebrow">02 · Online application</div>
+  <div class="top">
+    <h2 style="max-width: 160mm;">Apply in minutes, <em>from any phone.</em></h2>
+    <p style="max-width: 92mm; margin-top: 2mm;">Four short steps. The phone number is confirmed with a one-time code, so staff only spend time on real, reachable applicants.</p>
+  </div>
+  <div class="row" style="margin-top: 7mm; gap: 9mm; justify-content: center;">
+    <div style="width: 46mm;"><div class="phone"><img src="img/m-apply-1.jpg"></div><p class="cap"><b style="color:var(--forest-950)">1 · Loan</b>: product, amount, term and purpose, with a live estimate.</p></div>
+    <div style="width: 46mm;"><div class="phone"><img src="img/m-apply-2.jpg"></div><p class="cap"><b style="color:var(--forest-950)">2–3 · About you</b>: identity, district, income and security offered.</p></div>
+    <div style="width: 46mm;"><div class="phone"><img src="img/m-apply-code.jpg"></div><p class="cap"><b style="color:var(--forest-950)">4 · Confirm</b>: consent and a 6-digit code. In the demo it shows on screen.</p></div>
+    <div style="width: 46mm;"><div class="phone"><img src="img/m-apply-done.jpg"></div><p class="cap"><b style="color:var(--forest-950)">Done</b>: a reference, the identity check and document upload, straight away.</p></div>
+  </div>
+  <div class="grow"></div>
+  <div class="pill-note" style="margin-top: 3mm; margin-bottom: 4mm;"><b>Protected by design:</b> rate limits on codes per number and per network, a hidden bot trap, server-side validation of every field, and consent recorded with the application.</div>
+  <div class="folio"><span><b>NANAM</b> · Online application</span><span>5</span></div>
+</section>
+
+<!-- 6 · Identity -->
+<section class="page dark">
+  <div class="row grow">
+    <div style="width: 112mm;" class="col">
+      <div class="eyebrow">03 · Identity verification</div>
+      <h2>Verified in seconds, <em>not days.</em></h2>
+      <p class="lead" style="font-size: 10.5pt;">Straight after applying, the applicant photographs the front and back of their National ID and takes a guided selfie. On a computer, a QR code hands the camera step to their phone, and the result appears live on both screens.</p>
+      <ul class="ticks" style="margin-top: 2mm;">
+        <li><b>Matched automatically</b>: the photo on the ID against the selfie, plus the NIN and name typed in the form.</li>
+        <li><b>A clear result: verified instantly, or sent to an officer for review</b>. Suspected fraud is blocked, and a bad photo asks for a retake.</li>
+        <li><b>Officers stay in control</b>: review, override, text a fresh link, or verify a walk-in client in person.</li>
+        <li><b>No disbursement</b> without a verified identity.</li>
+      </ul>
+      <div class="pill-note" style="margin-top: 3mm;"><b>Provider:</b> Smile ID Document Verification, used by banks and fintechs across Africa. The demo uses a built-in simulator that behaves like Smile ID's sandbox.</div>
+    </div>
+    <div class="grow" style="position: relative; margin-left: 6mm;">
+      <div class="browser" style="position:absolute; left:0; right: 26mm; top: 4mm;"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/apply</span></div><div class="crop" style="height: 92mm;"><img src="img/w-verify-qr.jpg" style="margin-top: -14mm;"></div></div>
+      <div class="phone" style="position:absolute; right: 0; top: 44mm; width: 46mm;"><img src="img/m-verify.jpg"></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Identity verification</span><span>6</span></div>
+</section>
+
+<!-- 7 · Assistant -->
+<section class="page white">
+  <div class="row grow">
+    <div class="grow" style="position: relative;">
+      <div class="browser" style="position:absolute; left:0; right: 30mm; top: 4mm;"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/loans</span></div><img src="img/w-chat.jpg"></div>
+      <div class="phone" style="position:absolute; right: 0; top: 40mm; width: 44mm;"><img src="img/m-chat.jpg"></div>
+    </div>
+    <div style="width: 92mm; margin-left: 10mm;" class="col">
+      <div class="eyebrow">04 · Ask NANAM &amp; WhatsApp</div>
+      <h2>Answers at 2 a.m., <em>at no running cost.</em></h2>
+      <p class="lead" style="font-size: 10.5pt;">An assistant that answers only from NANAM's own verified content: products, documents, costs and how to pay.</p>
+      <ul class="ticks" style="margin-top: 2mm;">
+        <li><b>Works out repayments</b> with the real loan maths ("10 million over 4 months?").</li>
+        <li><b>Understands common Luganda</b> words and everyday phrasing.</li>
+        <li><b>Refuses PINs and ID numbers</b> and warns about fraud.</li>
+        <li><b>Hands off to a person</b> on WhatsApp with one tap.</li>
+        <li><b>Runs in the visitor's browser</b>: no AI subscription and no data sent anywhere, so it can't invent answers.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Assistant</span><span>7</span></div>
+</section>
+
+<!-- 8 · Portal -->
+<section class="page">
+  <div class="eyebrow">05 · Customer portal</div>
+  <div class="top">
+    <h2 style="max-width: 150mm;">Their loan, <em>in their pocket.</em></h2>
+    <p style="max-width: 100mm; margin-top: 2mm;">Clients sign in with a code sent to their phone, with no passwords to forget. Routine questions ("what's my balance?", "when is my next payment?") no longer need a call or a branch visit.</p>
+  </div>
+  <div class="row grow" style="margin-top: 8mm; gap: 7mm; align-items: flex-start;">
+    <div class="phone" style="width: 50mm;"><img src="img/m-portal.jpg"></div>
+    <div class="phone" style="width: 50mm;"><img src="img/m-portal-loan.jpg"></div>
+    <div class="col grow" style="gap: 3mm;">
+      <ul class="ticks">
+        <li><b>Overview</b>: balance, next payment, overdue warnings, progress and the saving from paying off early.</li>
+        <li><b>Schedule</b> with paid, upcoming and overdue instalments, and every payment received.</li>
+        <li><b>Application tracker</b>: received → under review → approved → funds sent.</li>
+        <li><b>Documents</b>: upload what's missing and see why anything was rejected.</li>
+        <li><b>Account recovery</b> for clients who change their number.</li>
+      </ul>
+      <div class="pill-note"><b>Security:</b> codes are hashed, single-use, expire in 10 minutes and are rate-limited. The sign-in page never reveals whether a number belongs to a NANAM client.</div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Customer portal</span><span>8</span></div>
+</section>
+
+<!-- 9 · Pay -->
+<section class="page white">
+  <div class="row grow">
+    <div style="width: 100mm;" class="col">
+      <div class="eyebrow">06 · Mobile Money</div>
+      <h2>Repay with MTN MoMo or Airtel Money, <em>and it posts itself.</em></h2>
+      <ul class="ticks" style="margin-top: 4mm;">
+        <li><b>Pay the next instalment, the overdue amount, the full payoff or any amount</b>. The client approves with their PIN on their own phone.</li>
+        <li><b>Money posts only after the network confirms it</b>, then the client gets an SMS receipt with the new balance.</li>
+        <li><b>Safe by design</b>: duplicate payments are rejected, overpayments open a refund case, and a sweep re-checks anything unresolved.</li>
+        <li><b>Statements</b> reconcile every charge and payment down to a zero balance, ready to print or save as PDF.</li>
+      </ul>
+      <div class="pill-note" style="margin-top: 4mm;"><b>Already wired up</b> to MTN's and Airtel's official sandboxes. A <b>Payments lab</b> in the console tests each network end to end without touching any loan.</div>
+    </div>
+    <div class="grow" style="position: relative; margin-left: 8mm;">
+      <div class="browser" style="position:absolute; left:0; right: 26mm; top: 2mm;"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/portal/…/statement</span></div><div class="crop" style="height: 112mm;"><img src="img/p-statement.jpg"></div></div>
+      <div class="phone" style="position:absolute; right: 0; top: 48mm; width: 46mm;"><img src="img/m-pay.jpg"></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Mobile Money</span><span>9</span></div>
+</section>
+
+<!-- 10 · Console overview -->
+<section class="page dark">
+  <div class="eyebrow">07 · Staff console</div>
+  <div class="top">
+    <h2 style="max-width: 150mm;">The whole portfolio, <em>the moment you sign in.</em></h2>
+    <p style="max-width: 96mm; margin-top: 2mm;">Each person sees what's waiting on them: applications to review, approvals, disbursements, documents to verify, refunds and loans in arrears.</p>
+  </div>
+  <div class="browser" style="margin-top: 7mm;"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/console</span></div><div class="crop" style="height: 112mm;"><img src="img/c-overview.jpg"></div></div>
+  <div class="folio"><span><b>NANAM</b> · Staff console</span><span>10</span></div>
+</section>
+
+<!-- 11 · Credit workflow -->
+<section class="page white">
+  <div class="eyebrow">07 · Staff console · Credit workflow</div>
+  <div class="row grow">
+    <div style="width: 104mm;" class="col">
+      <h2 style="font-size: 26pt;">Every loan follows <em>the same controlled path.</em></h2>
+      <p style="margin-top: 1mm;">Each application page holds everything needed to decide: applicant, NIN check, collateral, documents, identity result, notes and an automatic credit assessment.</p>
+      <table style="margin-top: 3mm;">
+        <tr><th>Role</th><th>Can</th></tr>
+        <tr><td><b>Loan officer</b></td><td>Review, verify documents and ID, record collateral, recommend</td></tr>
+        <tr><td><b>Credit manager</b></td><td>Approve or decline (never their own recommendation)</td></tr>
+        <tr><td><b>Finance</b></td><td>Disburse approved loans, record repayments, pay refunds</td></tr>
+        <tr><td><b>Administrator</b></td><td>All of the above, plus team, audit log and payments lab</td></tr>
+      </table>
+      <div class="pill-note" style="margin-top: 3mm;"><b>Built-in checks:</b> instalment vs. 40% of income, collateral cover of at least 1.5×, verified ID, required documents. Disbursement is blocked until the original collateral is in custody.</div>
+    </div>
+    <div class="grow" style="margin-left: 8mm; padding-top: 12mm;">
+      <div class="browser"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/console/applications/…</span></div><img src="img/c-application.jpg"></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Credit workflow</span><span>11</span></div>
+</section>
+
+<!-- 12 · Loan book -->
+<section class="page">
+  <div class="eyebrow">07 · Staff console · Loan book &amp; collections</div>
+  <div class="top">
+    <h2 style="max-width: 160mm;">Collections that <em>run themselves.</em></h2>
+    <p style="max-width: 96mm; margin-top: 2mm;">Schedules, arrears and reminders are calculated automatically, so the team spends its time on the clients who need a call.</p>
+  </div>
+  <div class="row grow" style="margin-top: 7mm; gap: 6mm;">
+    <div style="flex: 1.2;"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/console/loans/…</span></div><img src="img/c-loan.jpg"></div></div>
+    <div class="col" style="flex: 1;">
+      <ul class="ticks">
+        <li><b>Repayments go to the oldest instalment first</b>. Early settlement waives future interest, and the console shows the payoff figure for today.</li>
+        <li><b>Automatic SMS</b>: 3 days before, on the due day, 1/7/30+ days overdue, receipts and disbursement. Never texted twice.</li>
+        <li><b>Collateral register</b>: logbooks and titles in custody, released only after full repayment.</li>
+        <li><b>Refunds</b>: overpayments open a case. A manager approves it and finance pays it, never the same person.</li>
+        <li><b>Agents</b>: partner referral links, with commission on each disbursed referral.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Loan book</span><span>12</span></div>
+</section>
+
+<!-- 13 · Console tools -->
+<section class="page white">
+  <div class="eyebrow">07 · Staff console · Everyday tools</div>
+  <h2 style="max-width: 200mm;">Fast to use, <em>and every action leaves a trace.</em></h2>
+  <div class="row" style="margin-top: 7mm; gap: 7mm; align-items: flex-start;">
+    <div style="flex: 1.55;"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/console</span></div><img src="img/c-palette.jpg"></div><p class="cap"><b style="color:var(--forest-950)">⌘K search</b>: find any client, loan, reference, phone number or NIN from anywhere. Keyboard shortcuts (G then a letter) jump between sections.</p></div>
+    <div class="col" style="flex: 1; gap: 4mm;">
+      <div><div class="browser"><div class="bar"><i></i><i></i><i></i></div><div class="crop" style="height: 44mm;"><img src="img/c-sms.jpg"></div></div><p class="cap"><b style="color:var(--forest-950)">SMS &amp; reminders</b>: what goes out today, what was sent and what failed, with send-now.</p></div>
+      <div><div class="browser"><div class="bar"><i></i><i></i><i></i></div><div class="crop" style="height: 44mm;"><img src="img/c-payments-lab.jpg"></div></div><p class="cap"><b style="color:var(--forest-950)">Payments lab</b>: test MTN and Airtel end to end with live status, never touching a loan.</p></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Console tools</span><span>13</span></div>
+</section>
+
+<!-- 14 · Mobile -->
+<section class="page dark">
+  <div class="row grow">
+    <div style="width: 84mm;" class="col">
+      <div class="eyebrow">08 · Built for phones</div>
+      <h2>Most clients will meet NANAM <em>on a phone.</em></h2>
+      <p class="lead" style="font-size: 10.5pt;">Every page of the website, portal and console was checked at six phone widths, from 320 to 430 px: nothing scrolls sideways, buttons are big enough for a thumb, and forms don't zoom on iPhone.</p>
+      <ul class="ticks" style="margin-top: 2mm;">
+        <li>Full-screen menu and assistant</li>
+        <li>Mobile Money pay flow designed for one hand</li>
+        <li>Staff can approve, record and look up loans on the move</li>
+        <li>Reduced motion respected, readable in sunlight</li>
+      </ul>
+    </div>
+    <div class="grow row" style="gap: 5mm; margin-left: 8mm; align-items: center;">
+      <div class="phone" style="flex:1"><img src="img/m-menu.jpg"></div>
+      <div class="phone" style="flex:1; margin-top: 18mm;"><img src="img/m-home-calc.jpg"></div>
+      <div class="phone" style="flex:1"><img src="img/m-console.jpg"></div>
+      <div class="phone" style="flex:1; margin-top: 18mm;"><img src="img/m-console-loan.jpg"></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Mobile</span><span>14</span></div>
+</section>
+
+<!-- 15 · Security -->
+<section class="page white">
+  <div class="eyebrow">09 · Security &amp; compliance</div>
+  <h2 style="max-width: 210mm;">Built the way <em>a regulated lender has to work.</em></h2>
+  <div class="row" style="margin-top: 7mm; gap: 6mm; align-items: stretch;">
+    <div class="card col" style="flex:1"><h3>Access</h3><ul class="ticks"><li>Role-based permissions and maker-checker</li><li>Hashed, httpOnly sessions; sign-in throttling</li><li>Staff password reset by email link</li><li>Disabled staff lose access immediately</li></ul></div>
+    <div class="card col" style="flex:1"><h3>Client data</h3><ul class="ticks"><li>Documents and ID photos in private storage, never public links</li><li>Files checked by their real contents (JPEG, PNG, WebP, PDF)</li><li>Every staff view of a document is logged</li><li>Consent recorded with each application</li></ul></div>
+    <div class="card col" style="flex:1"><h3>Money</h3><ul class="ticks"><li>Payments post only on provider confirmation</li><li>Idempotent posting; duplicate references rejected</li><li>Overpayments become refund cases</li><li>Immutable audit log of every money movement</li></ul></div>
+    <div class="card col" style="flex:1"><h3>Regulation</h3><ul class="ticks"><li>2.8% per month, the legal maximum (Legal Notice No. 21 of 2024)</li><li>Reducing-balance interest, fee shown before signing</li><li>Privacy, terms, key loan facts and complaints pages</li><li>Designed with Uganda's Data Protection and Privacy Act in mind</li></ul></div>
+  </div>
+  <div class="row" style="margin-top: 6mm; gap: 7mm; align-items: center;">
+    <div style="flex: 1.6;"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>{{HOST}}/console/audit</span></div><div class="crop" style="height: 40mm;"><img src="img/c-audit.jpg"></div></div></div>
+    <div style="flex: 1;"><h3>Audit log</h3><p style="margin-top: 1.5mm; font-size: 9.5pt;">Every sign-in, decision, document view and money movement is recorded with who did it and when, and it can't be edited.</p><p style="font-size: 8.5pt; margin-top: 3mm;">The legal pages are drafts for NANAM's legal review. Items in [brackets] are for NANAM to complete, never guessed.</p></div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Security &amp; compliance</span><span>15</span></div>
+</section>
+
+<!-- 16 · Try it: website & portal -->
+<section class="page">
+  <div class="eyebrow">10 · Try it yourself</div>
+  <div class="top">
+    <h2 style="max-width: 150mm;">Fifteen minutes, <em>end to end.</em></h2>
+    <p style="max-width: 104mm; margin-top: 2mm;">Open <a class="link" href="{{BASE}}">{{HOST}}</a> on a laptop, with your phone nearby. The lime <b style="color:var(--forest-950)">Demo</b> bar at the top means sample data: no real SMS, money or ID checks happen, and codes appear on screen.</p>
+  </div>
+  <div class="row" style="margin-top: 7mm; gap: 6mm; align-items: stretch;">
+    <div class="card col" style="flex:1">
+      <span class="chip lime" style="align-self:flex-start">A · Apply as a client</span>
+      <ol class="steps">
+        <li>Open <a class="link" href="{{BASE}}/apply">/apply</a>, choose a product and amount.</li>
+        <li>Enter any name, a phone like <code>0772 555 123</code> and NIN <code>CM12345678ABCD</code>.</li>
+        <li>On the last step, tap <b>Use code</b> in the green demo box, then <b>Confirm &amp; submit</b>.</li>
+        <li>Note your reference, then start the identity check.</li>
+      </ol>
+    </div>
+    <div class="card col" style="flex:1">
+      <span class="chip lime" style="align-self:flex-start">B · Verify identity</span>
+      <ol class="steps">
+        <li>On a laptop, scan the QR code with your phone camera.</li>
+        <li>Photograph the front and back of any card, then take the selfie.</li>
+        <li>Watch the result appear on both screens.</li>
+        <li>Try outcomes by applying with the surname <code>Twinley</code> (face mismatch), <code>Xeroxley</code> (officer review) or <code>Blurton</code> (retake).</li>
+      </ol>
+    </div>
+    <div class="card col" style="flex:1">
+      <span class="chip lime" style="align-self:flex-start">C · Be a borrower</span>
+      <ol class="steps">
+        <li>Open <a class="link" href="{{BASE}}/portal/login">/portal/login</a> and enter <code>0709 101 112</code> (Gloria, active loan).</li>
+        <li>Tap <b>Use code</b>, then <b>Sign in</b>.</li>
+        <li>Open the loan, then <b>Pay now</b>: pick MTN or Airtel and approve the simulated prompt.</li>
+        <li>Open <b>Statement</b>. Also try <code>0781 222 333</code> (Harriet, 100 days late).</li>
+      </ol>
+    </div>
+  </div>
+  <div class="row" style="margin-top: 6mm; gap: 6mm; align-items: flex-start;">
+    <div style="flex: 1.5;">
+      <h3 style="margin-bottom: 2mm;">Sample clients to try in the portal</h3>
+      <table style="background:#fff; border-radius: 12px; overflow:hidden;">
+        <tr><th>Client</th><th>Phone</th><th>What you'll see</th></tr>
+        <tr><td><b>Gloria Nambi</b></td><td class="mono">0709 101 112</td><td>Active business loan, on time; an overpayment refund case</td></tr>
+        <tr><td><b>Harriet Atim</b></td><td class="mono">0781 222 333</td><td>Contract finance, 100 days in arrears: overdue warnings</td></tr>
+        <tr><td><b>Sarah Nakato</b></td><td class="mono">0772 345 678</td><td>No loan yet: an application in progress, with its tracker</td></tr>
+      </table>
+    </div>
+    <div class="pill-note" style="flex: 1;"><b>Good to know:</b> the demo resets nothing automatically, so anything you create stays for others to see. Codes are limited to 3 per number every 15 minutes, just like the real thing.</div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Try it yourself</span><span>16</span></div>
+</section>
+
+<!-- 17 · Try it: console -->
+<section class="page white">
+  <div class="eyebrow">10 · Try it yourself · Staff console</div>
+  <div class="row grow">
+    <div class="col" style="flex: 1.15;">
+      <h2 style="font-size: 26pt;">Take your application <em>all the way to payout.</em></h2>
+      <p>Open <a class="link" href="{{BASE}}/console/login">/console/login</a>. In the demo, the buttons under the sign-in card let you enter as any role with one tap.</p>
+      <ol class="steps" style="margin-top: 2mm;">
+        <li><b>Loan officer</b>: open your application under <b>Applications</b> and tap <b>Assign to me &amp; start review</b>. Add the collateral (e.g. a land title valued at UGX 40M), tap <b>Mark original received</b>, write a short note and tap <b>Recommend</b>.</li>
+        <li><b>Credit manager</b>: open the same application. If the phone ID check from B wasn't done, use <b>Record identity decision</b> for an in-person check. Then choose <b>Approve</b>, give a reason and tap <b>Record decision</b>. Whoever recommended a loan can't approve it.</li>
+        <li><b>Finance</b>: enter the payout method and reference, then <b>Confirm disbursement</b>. The repayment schedule and the SMS to the client are created automatically.</li>
+        <li>Open <b>Loan book</b> and record a repayment, or press <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> and search a name.</li>
+        <li><b>Administrator</b>: see the <b>Audit log</b> of everything you just did, the <b>Payments lab</b> and <b>SMS &amp; reminders</b>.</li>
+      </ol>
+      <div class="pill-note" style="margin-top: 4mm;"><b>Try the guard-rails too:</b> as the loan officer, open <b>Team</b> (not allowed); as the manager, recommend an application yourself and then try to approve it; try to disburse before the original collateral has been received.</div>
+    </div>
+    <div class="grow" style="margin-left: 8mm; position: relative;">
+      <div class="phone" style="position:absolute; right: 4mm; top: 0; width: 64mm;"><div class="crop" style="height: 120mm; border-radius: 21px;"><img src="img/demo-console-login.jpg"></div></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Try it yourself</span><span>17</span></div>
+</section>
+
+<!-- 18 · Before launch -->
+<section class="page">
+  <div class="eyebrow">11 · What NANAM can have before full launch</div>
+  <div class="top">
+    <h2 style="max-width: 150mm;">Switch it on <em>in stages.</em></h2>
+    <p style="max-width: 104mm; margin-top: 2mm;">Everything is built. Each stage only needs NANAM's own account with the provider. The keys go into the hosting settings, with no code changes.</p>
+  </div>
+  <table style="margin-top: 6mm; background: #fff; border-radius: 12px; overflow: hidden;">
+    <tr><th style="width: 34mm;">Stage</th><th>What goes live</th><th style="width: 74mm;">What NANAM provides</th><th style="width: 30mm;">Today</th></tr>
+    <tr><td><b>1 · Online</b></td><td>New website, assistant and WhatsApp, online applications, staff console with the full credit workflow, collateral register, audit log</td><td>Domain (nanam.ug) pointed to the platform; an <b>SMS sender account</b> (e.g. Africa's Talking) for application codes; staff accounts</td><td><span class="status s-demo">Working in demo</span></td></tr>
+    <tr><td><b>2 · Clients</b></td><td>Customer portal (balances, schedule, statements), automatic SMS reminders and receipts</td><td>Same SMS account; confirm the reminder wording</td><td><span class="status s-demo">Working in demo</span></td></tr>
+    <tr><td><b>3 · Payments</b></td><td>MTN MoMo and Airtel Money repayments that post automatically</td><td>MTN MoMo and Airtel Money <b>collections</b> merchant accounts (business verification by each network)</td><td><span class="status s-demo">Sandbox-ready</span></td></tr>
+    <tr><td><b>4 · Instant ID</b></td><td>Automatic National ID + selfie verification in seconds</td><td>A <b>Smile ID</b> account (in-person verification by officers works from stage 1)</td><td><span class="status s-demo">Sandbox-ready</span></td></tr>
+    <tr><td><b>Always</b></td><td>Staff password-reset emails; production hosting</td><td>An email sender (e.g. Resend) on a nanam.ug address; a Vercel Pro plan for commercial use</td><td><span class="status s-need">Needs NANAM</span></td></tr>
+  </table>
+  <div class="row" style="margin-top: 5mm; gap: 6mm;">
+    <div class="pill-note" style="flex:1"><b>Nothing blocks stage 1.</b> Repayments can be recorded by staff and identities verified in person while the payment and ID accounts are being approved.</div>
+    <div class="pill-note" style="flex:1"><b>Before real clients:</b> legal review of the draft policies, real staff accounts, removal of the demo switch and a fresh database.</div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Launch plan</span><span>18</span></div>
+</section>
+
+<!-- 19 · Close -->
+<section class="page dark">
+  <div class="glow" style="left: -50mm; right: auto; bottom: -60mm;"></div>
+  <div class="row grow" style="position: relative; z-index: 2;">
+    <div class="col" style="width: 140mm;">
+      <img src="{{BRAND}}/logo-inverse.svg" style="height: 10mm; width: auto; align-self: flex-start;">
+      <h2 style="font-size: 40pt; margin-top: 14mm;">Ready when NANAM is. <em>Try it today.</em></h2>
+      <p class="lead">The demo is live and loaded with sample clients, loans and applications. Click through it as a borrower and as each member of staff. Nothing you do there touches real money or real people.</p>
+      <div style="margin-top: 8mm; display: grid; gap: 3mm; font-size: 10pt;">
+        <div><span class="chip lime">Website</span>&nbsp; <a class="link" href="{{BASE}}">{{HOST}}</a></div>
+        <div><span class="chip dim">Portal</span>&nbsp; <a class="link" href="{{BASE}}/portal/login">{{HOST}}/portal/login</a></div>
+        <div><span class="chip dim">Console</span>&nbsp; <a class="link" href="{{BASE}}/console/login">{{HOST}}/console/login</a></div>
+        <div><span class="chip dim">This guide</span>&nbsp; <a class="link" href="{{BASE}}/nanam-platform-guide.pdf">{{HOST}}/nanam-platform-guide.pdf</a></div>
+      </div>
+    </div>
+    <div class="grow" style="position: relative;">
+      <div class="phone" style="position: absolute; right: 30mm; top: 6mm; width: 52mm; transform: rotate(-3deg);"><img src="img/m-home.jpg"></div>
+      <div class="phone" style="position: absolute; right: -4mm; top: 40mm; width: 48mm; transform: rotate(4deg);"><img src="img/m-portal.jpg"></div>
+    </div>
+  </div>
+  <div class="folio"><span><b>NANAM</b> · Digital platform guide</span><span>Sample data only · No real client information is shown</span></div>
+</section>
+
+</body>
+</html>

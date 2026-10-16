@@ -17,7 +17,8 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "db:staff-passwords": "tsx scripts/staff-passwords.mts",
     "momo:mtn-sandbox": "tsx scripts/mtn-sandbox.mts",
-    "fonts": "tsx scripts/fonts.mts"
+    "fonts": "tsx scripts/fonts.mts",
+    "guide": "node guide/build.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.10",
