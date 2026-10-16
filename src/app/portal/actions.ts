@@ -27,7 +27,9 @@ export async function loginStep(prev: LoginState, fd: FormData): Promise<LoginSt
     return { step: "code", phone: r.phone, message: `If ${r.phone} is registered with NANAM, we’ve sent it a 6-digit code.` };
   } catch (err) {
     console.error("[portal] could not send code", err);
-    const detail = testMode() && err instanceof Error ? ` (${err.message})` : "";
+    // Drizzle wraps the database's message in `cause`; show the root reason in test mode.
+    const root = err instanceof Error && err.cause instanceof Error ? err.cause : err;
+    const detail = testMode() && root instanceof Error ? ` (${root.message})` : "";
     return { step: "phone", error: `We couldn’t send a code right now. Please try again shortly.${detail}` };
   }
 }
